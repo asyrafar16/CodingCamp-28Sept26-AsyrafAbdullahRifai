@@ -267,7 +267,7 @@ This plan implements a client-side web application for tracking personal expense
     - Test with JavaScript disabled (graceful degradation or error message)
     - _Requirements: 10.3 (deployable via file:// protocol), 10.2 (use only standard APIs)_
 
-- [-] 16. Final checkpoint - Complete validation
+- [x] 16. Final checkpoint - Complete validation
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
