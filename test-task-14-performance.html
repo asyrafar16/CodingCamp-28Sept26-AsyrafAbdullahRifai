@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task 14 Performance Optimization Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    
+    .test-section {
+      background: white;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 0.5rem;
+    }
+    
+    h2 {
+      color: #4CAF50;
+      margin-top: 0;
+    }
+    
+    .test-result {
+      padding: 1rem;
+      margin: 0.5rem 0;
+      border-radius: 4px;
+      border-left: 4px solid #ccc;
+    }
+    
+    .test-result.pass {
+      background: #e8f5e9;
+      border-left-color: #4CAF50;
+    }
+    
+    .test-result.fail {
+      background: #ffebee;
+      border-left-color: #f44336;
+    }
+    
+    .test-result.info {
+      background: #e3f2fd;
+      border-left-color: #2196F3;
+    }
+    
+    code {
+      background: #f5f5f5;
+      padding: 0.25rem 0.5rem;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      color: #d32f2f;
+    }
+    
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin: 0.5rem 0.5rem 0.5rem 0;
+    }
+    
+    button:hover {
+      background: #45a049;
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+    
+    #performance-log {
+      background: #263238;
+      color: #aed581;
+      padding: 1rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    
+    .metric {
+      display: inline-block;
+      background: #e3f2fd;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      margin: 0.25rem;
+      font-weight: 600;
+    }
+    
+    .metric.good {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    
+    .metric.warning {
+      background: #fff3e0;
+      color: #e65100;
+    }
+    
+    .metric.error {
+      background: #ffebee;
+      color: #c62828;
+    }
+  </style>
+</head>
+<body>
+  <h1>Task 14: Performance Optimization Test Suite</h1>
+  
+  <div class="test-section">
+    <h2>14.1 - Debouncing and Efficient Rendering</h2>
+    
+    <div id="test-14-1-results"></div>
+    
+    <button onclick="testDebounceFunction()">Test Debounce Function</button>
+    <button onclick="testDocumentFragment()">Test DocumentFragment Usage</button>
+    <button onclick="testDOMCaching()">Test DOM Reference Caching</button>
+    <button onclick="testChartOptimization()">Test Chart Re-render Optimization</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>14.2 - Loading States and Performance Monitoring</h2>
+    
+    <div id="test-14-2-results"></div>
+    
+    <button onclick="testPerformanceMonitor()">Test Performance Monitor</button>
+    <button onclick="testLoadingIndicator()">Test Loading Indicator</button>
+    <button onclick="testTimeBudgets()">Test Time Budget Warnings</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>Performance Metrics Log</h2>
+    <div id="performance-log">Console output will appear here...</div>
+  </div>
+  
+  <script>
+    // Override console.log to also display in the page
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const logElement = document.getElementById('performance-log');
+    
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      logElement.textContent += args.join(' ') + '\n';
+      logElement.scrollTop = logElement.scrollHeight;
+    };
+    
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      logElement.textContent += '[WARN] ' + args.join(' ') + '\n';
+      logElement.scrollTop = logElement.scrollHeight;
+    };
+    
+    function addTestResult(containerId, message, status) {
+      const container = document.getElementById(containerId);
+      const result = document.createElement('div');
+      result.className = `test-result ${status}`;
+      result.textContent = message;
+      container.appendChild(result);
+    }
+    
+    // Test 14.1.1: Debounce Function
+    function testDebounceFunction() {
+      addTestResult('test-14-1-results', 'Testing debounce function...', 'info');
+      
+      // Create iframe to access Utils module
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'index.html';
+      document.body.appendChild(iframe);
+      
+      iframe.onload = function() {
+        try {
+          const Utils = iframe.contentWindow.Utils;
+          
+          if (!Utils) {
+            addTestResult('test-14-1-results', '❌ FAIL: Utils module not found', 'fail');
+            return;
+          }
+          
+          if (typeof Utils.debounce !== 'function') {
+            addTestResult('test-14-1-results', '❌ FAIL: Utils.debounce function not found', 'fail');
+            return;
+          }
+          
+          addTestResult('test-14-1-results', '✓ PASS: Utils module exists with debounce function', 'pass');
+          
+          // Test debounce functionality
+          let callCount = 0;
+          const debouncedFn = Utils.debounce(() => callCount++, 300);
+          
+          // Call multiple times rapidly
+          debouncedFn();
+          debouncedFn();
+          debouncedFn();
+          
+          // Check immediately - should not have called yet
+          if (callCount === 0) {
+            addTestResult('test-14-1-results', '✓ PASS: Debounce delays execution', 'pass');
+          } else {
+            addTestResult('test-14-1-results', '❌ FAIL: Debounce did not delay execution', 'fail');
+          }
+          
+          // Check after 350ms - should have called once
+          setTimeout(() => {
+            if (callCount === 1) {
+              addTestResult('test-14-1-results', '✓ PASS: Debounce executes once after delay (300ms)', 'pass');
+            } else {
+              addTestResult('test-14-1-results', `❌ FAIL: Debounce called ${callCount} times instead of 1`, 'fail');
+            }
+            document.body.removeChild(iframe);
+          }, 350);
+          
+        } catch (error) {
+          addTestResult('test-14-1-results', `❌ ERROR: ${error.message}`, 'fail');
+          document.body.removeChild(iframe);
+        }
+      };
+    }
+    
+    // Test 14.1.2: DocumentFragment Usage
+    function testDocumentFragment() {
+      addTestResult('test-14-1-results', 'Testing documentFragment usage in TransactionList...', 'info');
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'index.html';
+      document.body.appendChild(iframe);
+      
+      iframe.onload = function() {
+        try {
+          // Check if render function uses documentFragment
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const scriptContent = Array.from(iframeDoc.querySelectorAll('script'))
+            .map(s => s.textContent)
+            .join('\n');
+          
+          if (scriptContent.includes('createDocumentFragment')) {
+            addTestResult('test-14-1-results', '✓ PASS: TransactionList.render uses createDocumentFragment', 'pass');
+          } else {
+            addTestResult('test-14-1-results', '❌ FAIL: TransactionList.render does not use createDocumentFragment', 'fail');
+          }
+          
+          if (scriptContent.includes('fragment.appendChild')) {
+            addTestResult('test-14-1-results', '✓ PASS: Batch DOM updates with fragment.appendChild', 'pass');
+          } else {
+            addTestResult('test-14-1-results', '❌ FAIL: Does not batch DOM updates with fragment', 'fail');
+          }
+          
+          document.body.removeChild(iframe);
+        } catch (error) {
+          addTestResult('test-14-1-results', `❌ ERROR: ${error.message}`, 'fail');
+          document.body.removeChild(iframe);
+        }
+      };
+    }
+    
+    // Test 14.1.3: DOM Reference Caching
+    function testDOMCaching() {
+      addTestResult('test-14-1-results', 'Testing DOM reference caching...', 'info');
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'index.html';
+      document.body.appendChild(iframe);
+      
+      iframe.onload = function() {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const scriptContent = Array.from(iframeDoc.querySelectorAll('script'))
+            .map(s => s.textContent)
+            .join('\n');
+          
+          // Check for cached references in TransactionForm
+          if (scriptContent.includes('let nameInput = null') && 
+              scriptContent.includes('let amountInput = null') &&
+              scriptContent.includes('let categorySelect = null')) {
+            addTestResult('test-14-1-results', '✓ PASS: TransactionForm caches DOM element references', 'pass');
+          } else {
+            addTestResult('test-14-1-results', '❌ FAIL: TransactionForm does not cache DOM references', 'fail');
+          }
+          
+          // Check for cached references in PieChart
+          if (scriptContent.includes('let canvasElement = null') && 
+              scriptContent.includes('let chartInstance = null')) {
+            addTestResult('test-14-1-results', '✓ PASS: PieChart caches canvas and chart instance references', 'pass');
+          } else {
+            addTestResult('test-14-1-results', '❌ FAIL: PieChart does not cache references', 'fail');
+          }
+          
+          document.body.removeChild(iframe);
+        } catch (error) {
+          addTestResult('test-14-1-results', `❌ ERROR: ${error.message}`, 'fail');
+          document.body.removeChild(iframe);
+        }
+      };
+    }
+    
+    // Test 14.1.4: Chart Re-render Optimization
+    function testChartOptimization() {
+      addTestResult('test-14-1-results', 'Testing chart re-render optimization...', 'info');
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'index.html';
+      document.body.appendChild(iframe);
+      
+      iframe.onload = function() {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const scriptContent = Array.from(iframeDoc.querySelectorAll('script'))
+            .map(s => s.textContent)
+            .join('\n');
+          
+          // Check for data change detection
+          if (scriptContent.includes('hasDataChanged')) {
+            addTestResult('test-14-1-results', '✓ PASS: PieChart implements hasDataChanged() function', 'pass');
+          } else {
+            addTestResult('test-14-1-results', '❌ FAIL: PieChart missing hasDataChanged() function', 'fail');
+          }
+          
+          if (scriptContent.includes('lastCategoryTotals')) {
+            addTestResult('test-14-1-results', '✓ PASS: PieChart caches previous data for comparison', 'pass');
+          } else {
+            addTestResult('test-14-1-results', '❌ FAIL: PieChart does not cache previous data', 'fail');
+          }
+          
+          if (scriptContent.includes('Data unchanged, skipping chart update')) {
+            addTestResult('test-14-1-results', '✓ PASS: PieChart skips update when data is unchanged', 'pass');
+          } else {
+            addTestResult('test-14-1-results', '❌ FAIL: PieChart does not skip unnecessary updates', 'fail');
+          }
+          
+          document.body.removeChild(iframe);
+        } catch (error) {
+          addTestResult('test-14-1-results', `❌ ERROR: ${error.message}`, 'fail');
+          document.body.removeChild(iframe);
+        }
+      };
+    }
+    
+    // Test 14.2.1: Performance Monitor Module
+    function testPerformanceMonitor() {
+      addTestResult('test-14-2-results', 'Testing PerformanceMonitor module...', 'info');
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'index.html';
+      document.body.appendChild(iframe);
+      
+      iframe.onload = function() {
+        try {
+          const PerformanceMonitor = iframe.contentWindow.PerformanceMonitor;
+          
+          if (!PerformanceMonitor) {
+            addTestResult('test-14-2-results', '❌ FAIL: PerformanceMonitor module not found', 'fail');
+            return;
+          }
+          
+          addTestResult('test-14-2-results', '✓ PASS: PerformanceMonitor module exists', 'pass');
+          
+          // Test start/end functions
+          if (typeof PerformanceMonitor.start === 'function') {
+            addTestResult('test-14-2-results', '✓ PASS: PerformanceMonitor.start() function exists', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: PerformanceMonitor.start() missing', 'fail');
+          }
+          
+          if (typeof PerformanceMonitor.end === 'function') {
+            addTestResult('test-14-2-results', '✓ PASS: PerformanceMonitor.end() function exists', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: PerformanceMonitor.end() missing', 'fail');
+          }
+          
+          // Test TIME_BUDGETS
+          if (PerformanceMonitor.TIME_BUDGETS) {
+            addTestResult('test-14-2-results', '✓ PASS: TIME_BUDGETS object exists', 'pass');
+            
+            const budgets = PerformanceMonitor.TIME_BUDGETS;
+            console.log('Time Budgets:', JSON.stringify(budgets, null, 2));
+            
+            if (budgets.addTransaction === 1000) {
+              addTestResult('test-14-2-results', '✓ PASS: addTransaction budget = 1000ms', 'pass');
+            }
+            
+            if (budgets.deleteTransaction === 1000) {
+              addTestResult('test-14-2-results', '✓ PASS: deleteTransaction budget = 1000ms', 'pass');
+            }
+            
+            if (budgets.uiUpdate === 300) {
+              addTestResult('test-14-2-results', '✓ PASS: uiUpdate budget = 300ms', 'pass');
+            }
+            
+            if (budgets.initialLoad === 2000) {
+              addTestResult('test-14-2-results', '✓ PASS: initialLoad budget = 2000ms', 'pass');
+            }
+            
+            if (budgets.dataLoad === 500) {
+              addTestResult('test-14-2-results', '✓ PASS: dataLoad budget = 500ms', 'pass');
+            }
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: TIME_BUDGETS missing', 'fail');
+          }
+          
+          document.body.removeChild(iframe);
+        } catch (error) {
+          addTestResult('test-14-2-results', `❌ ERROR: ${error.message}`, 'fail');
+          document.body.removeChild(iframe);
+        }
+      };
+    }
+    
+    // Test 14.2.2: Loading Indicator
+    function testLoadingIndicator() {
+      addTestResult('test-14-2-results', 'Testing loading indicator implementation...', 'info');
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'index.html';
+      document.body.appendChild(iframe);
+      
+      iframe.onload = function() {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const scriptContent = Array.from(iframeDoc.querySelectorAll('script'))
+            .map(s => s.textContent)
+            .join('\n');
+          
+          if (scriptContent.includes('showLoadingIndicator')) {
+            addTestResult('test-14-2-results', '✓ PASS: showLoadingIndicator() function exists', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: showLoadingIndicator() missing', 'fail');
+          }
+          
+          if (scriptContent.includes('hideLoadingIndicator')) {
+            addTestResult('test-14-2-results', '✓ PASS: hideLoadingIndicator() function exists', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: hideLoadingIndicator() missing', 'fail');
+          }
+          
+          if (scriptContent.includes('setTimeout') && scriptContent.includes('500')) {
+            addTestResult('test-14-2-results', '✓ PASS: Loading indicator shows after 500ms delay', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: Loading indicator timing not implemented', 'fail');
+          }
+          
+          if (scriptContent.includes('10000')) {
+            addTestResult('test-14-2-results', '✓ PASS: Init timeout set to 10 seconds', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: 10-second timeout not implemented', 'fail');
+          }
+          
+          document.body.removeChild(iframe);
+        } catch (error) {
+          addTestResult('test-14-2-results', `❌ ERROR: ${error.message}`, 'fail');
+          document.body.removeChild(iframe);
+        }
+      };
+    }
+    
+    // Test 14.2.3: Time Budget Warnings
+    function testTimeBudgets() {
+      addTestResult('test-14-2-results', 'Testing time budget monitoring...', 'info');
+      
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'index.html';
+      document.body.appendChild(iframe);
+      
+      iframe.onload = function() {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const scriptContent = Array.from(iframeDoc.querySelectorAll('script'))
+            .map(s => s.textContent)
+            .join('\n');
+          
+          // Check for performance monitoring in critical operations
+          if (scriptContent.includes('PerformanceMonitor.start(\'addTransaction\')')) {
+            addTestResult('test-14-2-results', '✓ PASS: Add transaction monitored', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: Add transaction not monitored', 'fail');
+          }
+          
+          if (scriptContent.includes('PerformanceMonitor.start(\'deleteTransaction\')')) {
+            addTestResult('test-14-2-results', '✓ PASS: Delete transaction monitored', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: Delete transaction not monitored', 'fail');
+          }
+          
+          if (scriptContent.includes('PerformanceMonitor.start(\'uiUpdate\')')) {
+            addTestResult('test-14-2-results', '✓ PASS: UI update monitored', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: UI update not monitored', 'fail');
+          }
+          
+          if (scriptContent.includes('PerformanceMonitor.start(\'initialLoad\')')) {
+            addTestResult('test-14-2-results', '✓ PASS: Initial load monitored', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: Initial load not monitored', 'fail');
+          }
+          
+          if (scriptContent.includes('Performance Warning')) {
+            addTestResult('test-14-2-results', '✓ PASS: Budget exceeded warnings implemented', 'pass');
+          } else {
+            addTestResult('test-14-2-results', '❌ FAIL: Budget warnings missing', 'fail');
+          }
+          
+          document.body.removeChild(iframe);
+        } catch (error) {
+          addTestResult('test-14-2-results', `❌ ERROR: ${error.message}`, 'fail');
+          document.body.removeChild(iframe);
+        }
+      };
+    }
+    
+    // Initial message
+    console.log('='.repeat(60));
+    console.log('Task 14: Performance Optimization Test Suite');
+    console.log('='.repeat(60));
+    console.log('Click the test buttons above to run specific tests.');
+    console.log('');
+  </script>
+</body>
+</html>

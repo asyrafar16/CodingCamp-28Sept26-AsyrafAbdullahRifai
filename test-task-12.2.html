@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task 12.2 Test - Chart.js Loading Failure Handling</title>
+  
+  <!-- NOTE: Chart.js CDN is intentionally COMMENTED OUT to simulate failure -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script> -->
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .test-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    
+    h2 {
+      color: #666;
+      margin-top: 0;
+    }
+    
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-left: 4px solid #2196F3;
+      border-radius: 4px;
+    }
+    
+    .success {
+      border-left-color: #4CAF50;
+      background: #e8f5e9;
+    }
+    
+    .error {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    
+    .warning {
+      border-left-color: #ff9800;
+      background: #fff3e0;
+    }
+    
+    .chart-section {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .chart-wrapper {
+      position: relative;
+      min-height: 300px;
+      padding: 20px 0;
+    }
+    
+    .chart-empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+    
+    .empty-hint {
+      font-size: 0.875rem;
+      margin-top: 10px;
+      opacity: 0.7;
+    }
+    
+    .test-result {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    .pass {
+      background: #c8e6c9;
+      color: #2e7d32;
+    }
+    
+    .fail {
+      background: #ffcdd2;
+      color: #c62828;
+    }
+    
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    
+    button:hover {
+      background: #45a049;
+    }
+    
+    #console-output {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    
+    .form-section {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #333;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Task 12.2 - Chart.js Loading Failure Test</h1>
+    <p><strong>Test Objective:</strong> Verify that the application handles Chart.js loading failures gracefully and continues to function without the chart feature.</p>
+    
+    <div class="test-section warning">
+      <h2>⚠️ Test Configuration</h2>
+      <p>Chart.js CDN is <strong>intentionally disabled</strong> in this test file to simulate a loading failure.</p>
+      <p>Expected behaviors:</p>
+      <ul>
+        <li>✓ Chart section should display error message: "Chart library could not load"</li>
+        <li>✓ Chart section should be visually dimmed</li>
+        <li>✓ Rest of application should continue to function normally</li>
+        <li>✓ Transactions can still be added and displayed</li>
+        <li>✓ Balance should update correctly</li>
+        <li>✓ No JavaScript errors should break the application</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Transaction Form Section -->
+  <div class="form-section">
+    <h2>Add Transaction (Should Work Without Chart.js)</h2>
+    <form id="transaction-form">
+      <div class="form-group">
+        <label for="item-name">Item Name:</label>
+        <input type="text" id="item-name" placeholder="e.g., Coffee" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="category">Category:</label>
+        <select id="category" required>
+          <option value="">Select category...</option>
+          <option value="Food">Food</option>
+          <option value="Transport">Transport</option>
+          <option value="Fun">Fun</option>
+        </select>
+      </div>
+      
+      <button type="submit">Add Transaction</button>
+    </form>
+  </div>
+
+  <!-- Balance Display -->
+  <div class="test-container">
+    <h2>Balance Display (Should Work)</h2>
+    <div style="font-size: 2rem; font-weight: bold; text-align: center; color: #4CAF50; padding: 20px;">
+      <div id="balance-display">$0.00</div>
+    </div>
+  </div>
+
+  <!-- Chart Section (Should Show Error) -->
+  <div class="chart-section" id="chart-section">
+    <h2>Spending by Category (Chart.js Test)</h2>
+    <div class="chart-wrapper">
+      <canvas id="pie-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Test Results -->
+  <div class="test-container">
+    <h2>Test Results</h2>
+    <button onclick="runTests()">Run All Tests</button>
+    <button onclick="clearConsole()">Clear Console</button>
+    <div id="test-results"></div>
+  </div>
+
+  <!-- Console Output -->
+  <div class="test-container">
+    <h2>Console Output</h2>
+    <div id="console-output"></div>
+  </div>
+
+  <script>
+    // Capture console output
+    const consoleOutput = document.getElementById('console-output');
+    const originalConsoleLog = console.log;
+    const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
+    
+    function logToConsole(type, ...args) {
+      const timestamp = new Date().toLocaleTimeString();
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      consoleOutput.textContent += `[${timestamp}] [${type}] ${message}\n`;
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    console.log = function(...args) {
+      originalConsoleLog.apply(console, args);
+      logToConsole('LOG', ...args);
+    };
+    
+    console.error = function(...args) {
+      originalConsoleError.apply(console, args);
+      logToConsole('ERROR', ...args);
+    };
+    
+    console.warn = function(...args) {
+      originalConsoleWarn.apply(console, args);
+      logToConsole('WARN', ...args);
+    };
+    
+    function clearConsole() {
+      consoleOutput.textContent = '';
+    }
+    
+    // Simplified DataModel for testing
+    const DataModel = (function() {
+      let transactions = [];
+      let categories = ['Food', 'Transport', 'Fun'];
+      const listeners = {};
+      
+      function emit(eventName, data) {
+        if (listeners[eventName]) {
+          listeners[eventName].forEach(callback => callback(data));
+        }
+      }
+      
+      function on(eventName, callback) {
+        if (!listeners[eventName]) {
+          listeners[eventName] = [];
+        }
+        listeners[eventName].push(callback);
+      }
+      
+      function generateId() {
+        return 'xxxx-xxxx-xxxx-xxxx'.replace(/[x]/g, () => 
+          Math.floor(Math.random() * 16).toString(16)
+        );
+      }
+      
+      function addTransaction(transaction) {
+        const newTransaction = {
+          id: generateId(),
+          name: transaction.name,
+          amount: parseFloat(transaction.amount),
+          category: transaction.category,
+          date: new Date().toISOString(),
+          timestamp: Date.now()
+        };
+        transactions.push(newTransaction);
+        emit('transaction:added', newTransaction);
+        return newTransaction;
+      }
+      
+      function getTotalBalance() {
+        return transactions.reduce((sum, t) => sum + t.amount, 0);
+      }
+      
+      function getCategoryTotals() {
+        const totals = {};
+        transactions.forEach(t => {
+          const cat = t.category || 'Uncategorized';
+          totals[cat] = (totals[cat] || 0) + t.amount;
+        });
+        return totals;
+      }
+      
+      return {
+        addTransaction,
+        getTotalBalance,
+        getCategoryTotals,
+        on
+      };
+    })();
+    
+    // PieChart Component (copied from main implementation with Task 12.2 enhancements)
+    const PieChart = (function() {
+      let canvasElement = null;
+      let chartInstance = null;
+      let chartAvailable = true;
+      
+      const COLORS = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF9F40'
+      ];
+      
+      function init(canvas) {
+        if (!canvas) {
+          console.error('PieChart init failed: canvas element is null');
+          return;
+        }
+        
+        canvasElement = canvas;
+        
+        // Check if Chart.js is available (Task 12.2)
+        try {
+          if (typeof Chart === 'undefined') {
+            throw new Error('Chart.js library not loaded');
+          }
+          
+          if (typeof Chart !== 'function') {
+            throw new Error('Chart.js constructor not available');
+          }
+          
+          chartAvailable = true;
+          console.log('PieChart component initialized with Chart.js');
+        } catch (error) {
+          console.error('Chart.js initialization failed:', error);
+          chartAvailable = false;
+          showErrorState('Chart library could not load');
+          hideChartSection();
+          return;
+        }
+        
+        DataModel.on('transaction:added', function() {
+          update(DataModel.getCategoryTotals());
+        });
+        
+        update(DataModel.getCategoryTotals());
+      }
+      
+      function update(categoryTotals) {
+        if (!canvasElement) {
+          console.warn('PieChart update skipped: not initialized');
+          return;
+        }
+        
+        if (!chartAvailable) {
+          console.warn('PieChart update skipped: Chart.js not available');
+          return;
+        }
+        
+        if (typeof Chart === 'undefined') {
+          console.error('Chart.js no longer available');
+          chartAvailable = false;
+          showErrorState('Chart library could not load');
+          hideChartSection();
+          return;
+        }
+        
+        const categories = Object.keys(categoryTotals);
+        const amounts = Object.values(categoryTotals);
+        const total = amounts.reduce((sum, val) => sum + val, 0);
+        
+        try {
+          if (chartInstance) {
+            chartInstance.destroy();
+            chartInstance = null;
+          }
+        } catch (error) {
+          console.error('Failed to destroy existing chart:', error);
+          chartInstance = null;
+        }
+        
+        if (total === 0 || categories.length === 0) {
+          showEmptyState('No spending data available');
+          return;
+        }
+        
+        canvasElement.style.display = 'block';
+        const parent = canvasElement.parentElement;
+        if (parent) {
+          const emptyStateDiv = parent.querySelector('.chart-empty-state');
+          if (emptyStateDiv) {
+            emptyStateDiv.remove();
+          }
+        }
+        
+        const backgroundColors = categories.map((_, i) => COLORS[i % COLORS.length]);
+        
+        try {
+          chartInstance = new Chart(canvasElement, {
+            type: 'pie',
+            data: {
+              labels: categories,
+              datasets: [{
+                data: amounts,
+                backgroundColor: backgroundColors,
+                borderWidth: 2,
+                borderColor: '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false
+            }
+          });
+          
+          console.log('PieChart updated with', categories.length, 'categories');
+        } catch (error) {
+          console.error('Failed to create chart:', error);
+          chartAvailable = false;
+          showErrorState('Chart library could not load');
+          hideChartSection();
+        }
+      }
+      
+      function showEmptyState(message) {
+        if (!canvasElement) return;
+        
+        canvasElement.style.display = 'none';
+        const parent = canvasElement.parentElement;
+        if (!parent) return;
+        
+        let emptyStateDiv = parent.querySelector('.chart-empty-state');
+        
+        if (!emptyStateDiv) {
+          emptyStateDiv = document.createElement('div');
+          emptyStateDiv.className = 'chart-empty-state';
+          parent.appendChild(emptyStateDiv);
+        }
+        
+        emptyStateDiv.innerHTML = `
+          <span class="empty-icon">📊</span>
+          <p>${message}</p>
+          <p class="empty-hint">Add your first transaction to see the chart</p>
+        `;
+      }
+      
+      function showErrorState(message) {
+        if (!canvasElement) return;
+        
+        canvasElement.style.display = 'none';
+        const parent = canvasElement.parentElement;
+        if (!parent) return;
+        
+        let errorStateDiv = parent.querySelector('.chart-empty-state');
+        
+        if (!errorStateDiv) {
+          errorStateDiv = document.createElement('div');
+          errorStateDiv.className = 'chart-empty-state';
+          parent.appendChild(errorStateDiv);
+        }
+        
+        errorStateDiv.innerHTML = `
+          <span class="empty-icon">⚠️</span>
+          <p>${message}</p>
+          <p class="empty-hint">The chart feature is unavailable, but you can still track your expenses</p>
+        `;
+        
+        console.warn('Chart error state displayed:', message);
+      }
+      
+      function hideChartSection() {
+        if (!canvasElement) return;
+        
+        const chartSection = canvasElement.closest('#chart-section');
+        if (chartSection) {
+          chartSection.style.opacity = '0.6';
+          chartSection.setAttribute('aria-label', 'Chart unavailable - Chart.js library could not be loaded');
+          console.log('Chart section hidden gracefully due to Chart.js unavailability');
+        }
+      }
+      
+      return {
+        init: init,
+        update: update
+      };
+    })();
+    
+    // Balance Display Component
+    const BalanceDisplay = (function() {
+      let displayElement = null;
+      
+      function init(element) {
+        displayElement = element;
+        DataModel.on('transaction:added', function() {
+          update(DataModel.getTotalBalance());
+        });
+      }
+      
+      function update(total) {
+        if (!displayElement) return;
+        displayElement.textContent = '$' + total.toFixed(2);
+      }
+      
+      return {
+        init: init,
+        update: update
+      };
+    })();
+    
+    // Initialize components
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Initializing application with Chart.js CDN disabled...');
+      
+      // Initialize PieChart (should handle missing Chart.js gracefully)
+      PieChart.init(document.getElementById('pie-chart'));
+      
+      // Initialize Balance Display
+      BalanceDisplay.init(document.getElementById('balance-display'));
+      
+      // Set up form submission
+      document.getElementById('transaction-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('item-name').value;
+        const amount = document.getElementById('amount').value;
+        const category = document.getElementById('category').value;
+        
+        if (name && amount && category) {
+          DataModel.addTransaction({ name, amount, category });
+          console.log('Transaction added:', { name, amount, category });
+          
+          // Clear form
+          this.reset();
+        }
+      });
+      
+      console.log('Application initialized successfully despite Chart.js being unavailable');
+    });
+    
+    // Test Functions
+    function runTests() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = '<h3>Running tests...</h3>';
+      
+      const tests = [
+        {
+          name: 'Chart.js is unavailable',
+          test: () => typeof Chart === 'undefined',
+          expected: true
+        },
+        {
+          name: 'Chart error message is displayed',
+          test: () => {
+            const errorDiv = document.querySelector('.chart-empty-state');
+            return errorDiv && errorDiv.textContent.includes('Chart library could not load');
+          },
+          expected: true
+        },
+        {
+          name: 'Chart section is visually dimmed',
+          test: () => {
+            const chartSection = document.getElementById('chart-section');
+            return chartSection && chartSection.style.opacity === '0.6';
+          },
+          expected: true
+        },
+        {
+          name: 'Application did not crash',
+          test: () => {
+            return document.getElementById('balance-display') !== null;
+          },
+          expected: true
+        },
+        {
+          name: 'Balance display is functional',
+          test: () => {
+            const balanceEl = document.getElementById('balance-display');
+            return balanceEl && balanceEl.textContent.includes('$');
+          },
+          expected: true
+        }
+      ];
+      
+      let html = '<h3>Test Results:</h3>';
+      let passed = 0;
+      let failed = 0;
+      
+      tests.forEach(test => {
+        const result = test.test();
+        const success = result === test.expected;
+        
+        if (success) {
+          passed++;
+          html += `<div class="test-result pass">✓ ${test.name}</div>`;
+        } else {
+          failed++;
+          html += `<div class="test-result fail">✗ ${test.name} (Expected: ${test.expected}, Got: ${result})</div>`;
+        }
+      });
+      
+      html += `<div style="margin-top: 20px; font-weight: bold;">
+        Total: ${tests.length} | Passed: ${passed} | Failed: ${failed}
+      </div>`;
+      
+      resultsDiv.innerHTML = html;
+      
+      console.log(`Tests completed: ${passed}/${tests.length} passed`);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,4245 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense & Budget Visualizer</title>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  
+  <style>
+    /* ========================================
+       CSS CUSTOM PROPERTIES - THEME SYSTEM
+       ======================================== */
+    
+    :root {
+      /* Light Theme Colors */
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --border-color: #dddddd;
+      --accent-color: #4CAF50;
+      --error-color: #f44336;
+      --shadow: rgba(0, 0, 0, 0.1);
+      
+      /* Spacing */
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      
+      /* Typography */
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-size-base: 16px;
+      --font-size-lg: 1.25rem;
+      --font-size-xl: 2rem;
+      
+      /* Transitions */
+      --transition-speed: 300ms;
+    }
+    
+    [data-theme="dark"] {
+      /* Dark Theme Colors */
+      --bg-primary: #1e1e1e;
+      --bg-secondary: #2d2d2d;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --border-color: #404040;
+      --accent-color: #66BB6A;
+      --error-color: #ef5350;
+      --shadow: rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Apply smooth transitions to all elements for theme switching */
+    * {
+      transition: background-color var(--transition-speed),
+                  color var(--transition-speed),
+                  border-color var(--transition-speed);
+    }
+    
+    
+    /* ========================================
+       GLOBAL STYLES
+       ======================================== */
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      color: var(--text-primary);
+      background-color: var(--bg-secondary);
+      line-height: 1.6;
+    }
+    
+    
+    /* ========================================
+       APP CONTAINER
+       ======================================== */
+    
+    .app-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    
+    /* ========================================
+       HEADER & FOOTER
+       ======================================== */
+    
+    .app-header {
+      background-color: var(--bg-primary);
+      border-bottom: 1px solid var(--border-color);
+      padding: var(--spacing-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    
+    .app-header h1 {
+      font-size: var(--font-size-xl);
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    
+    #theme-toggle {
+      background: none;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: var(--spacing-sm);
+      cursor: pointer;
+      font-size: 1.5rem;
+      /* Minimum touch target size: 44px */
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #theme-toggle:hover {
+      border-color: var(--accent-color);
+    }
+    
+    #theme-toggle:active {
+      transform: scale(0.95);
+    }
+    
+    #theme-toggle:focus {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+    
+    .icon-moon {
+      display: none;
+    }
+    
+    [data-theme="dark"] .icon-sun {
+      display: none;
+    }
+    
+    [data-theme="dark"] .icon-moon {
+      display: inline;
+    }
+    
+    .app-footer {
+      background-color: var(--bg-primary);
+      border-top: 1px solid var(--border-color);
+      padding: var(--spacing-md);
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-top: auto;
+    }
+    
+    
+    /* ========================================
+       MAIN LAYOUT - CSS GRID
+       ======================================== */
+    
+    .app-main {
+      flex: 1;
+      padding: var(--spacing-md);
+      max-width: 1920px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    
+    /* Mobile Layout (< 768px): Single Column */
+    @media (max-width: 767px) {
+      .app-main {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+        grid-template-areas:
+          "balance"
+          "form"
+          "categories"
+          "list"
+          "chart"
+          "summary";
+      }
+      
+      #balance-section {
+        grid-area: balance;
+      }
+      
+      #form-section {
+        grid-area: form;
+      }
+      
+      #category-section {
+        grid-area: categories;
+      }
+      
+      #list-section {
+        grid-area: list;
+      }
+      
+      #chart-section {
+        grid-area: chart;
+      }
+      
+      #summary-section {
+        grid-area: summary;
+      }
+    }
+    
+    /* Desktop Layout (≥ 768px): Two Columns */
+    @media (min-width: 768px) {
+      .app-main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-md);
+        grid-template-areas:
+          "balance balance"
+          "form chart"
+          "categories chart"
+          "list summary";
+      }
+      
+      #balance-section {
+        grid-area: balance;
+      }
+      
+      #form-section {
+        grid-area: form;
+      }
+      
+      #category-section {
+        grid-area: categories;
+      }
+      
+      #list-section {
+        grid-area: list;
+      }
+      
+      #chart-section {
+        grid-area: chart;
+      }
+      
+      #summary-section {
+        grid-area: summary;
+      }
+    }
+    
+    
+    /* ========================================
+       CARD COMPONENT
+       ======================================== */
+    
+    .card {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: var(--spacing-md);
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    
+    .card h2 {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: var(--spacing-md);
+      color: var(--text-primary);
+    }
+    
+    
+    /* ========================================
+       RESPONSIVE UTILITIES
+       ======================================== */
+    
+    /* Ensure no horizontal scrolling on any viewport */
+    .app-container,
+    .app-main,
+    .card {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    
+    /* Adjust header on small mobile screens (320px) */
+    @media (max-width: 374px) {
+      .app-header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .app-header {
+        padding: var(--spacing-sm);
+      }
+      
+      .app-main {
+        padding: var(--spacing-sm);
+      }
+    }
+    
+    
+    /* ========================================
+       FORM COMPONENTS
+       ======================================== */
+    
+    .form-group {
+      margin-bottom: var(--spacing-md);
+      position: relative;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: var(--spacing-xs);
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: var(--font-size-base);
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: var(--spacing-sm);
+      font-size: var(--font-size-base);
+      font-family: var(--font-family);
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 4px;
+      transition: border-color var(--transition-speed),
+                  box-shadow var(--transition-speed),
+                  background-color var(--transition-speed);
+      box-sizing: border-box;
+    }
+    
+    .form-group input:hover,
+    .form-group select:hover {
+      border-color: var(--accent-color);
+    }
+    
+    /* Focus indicators for accessibility */
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+    }
+    
+    [data-theme="dark"] .form-group input:focus,
+    [data-theme="dark"] .form-group select:focus {
+      box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.2);
+    }
+    
+    /* Error state styling */
+    .form-group.error input,
+    .form-group.error select {
+      border-color: var(--error-color);
+    }
+    
+    .form-group.error input:focus,
+    .form-group.error select:focus {
+      box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.2);
+    }
+    
+    [data-theme="dark"] .form-group.error input:focus,
+    [data-theme="dark"] .form-group.error select:focus {
+      box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.2);
+    }
+    
+    /* Error message styling */
+    .error-message {
+      display: block;
+      margin-top: var(--spacing-xs);
+      color: var(--error-color);
+      font-size: 0.875rem;
+      min-height: 1.25rem;
+      transition: opacity var(--transition-speed);
+    }
+    
+    .error-message:empty {
+      opacity: 0;
+    }
+    
+    
+    /* ========================================
+       BUTTON STYLES
+       ======================================== */
+    
+    .btn-primary,
+    .btn-secondary {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-base);
+      font-family: var(--font-family);
+      font-weight: 500;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity var(--transition-speed),
+                  transform 100ms ease,
+                  background-color var(--transition-speed);
+      min-height: 44px; /* Touch target accessibility */
+      min-width: 44px;
+    }
+    
+    .btn-primary {
+      background-color: var(--accent-color);
+      color: #ffffff;
+    }
+    
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+    
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-primary:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+    }
+    
+    [data-theme="dark"] .btn-primary:focus {
+      box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 2px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+      background-color: var(--border-color);
+    }
+    
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-secondary:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    [data-theme="dark"] .btn-secondary:focus {
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    }
+    
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    
+    /* ========================================
+       TRANSACTION LIST STYLES
+       ======================================== */
+    
+    .transaction-container {
+      max-height: 400px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .transaction-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-sm);
+      margin-bottom: var(--spacing-xs);
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      transition: background-color var(--transition-speed),
+                  opacity var(--transition-speed),
+                  transform var(--transition-speed);
+    }
+    
+    .transaction-item:hover {
+      background-color: var(--border-color);
+    }
+    
+    .transaction-item.deleting {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    
+    .transaction-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+    }
+    
+    .transaction-name {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: var(--font-size-base);
+    }
+    
+    .transaction-details {
+      display: flex;
+      gap: var(--spacing-sm);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+    
+    .transaction-amount {
+      font-weight: 600;
+      color: var(--accent-color);
+    }
+    
+    .transaction-category {
+      color: var(--text-secondary);
+    }
+    
+    .transaction-delete {
+      background-color: transparent;
+      border: none;
+      color: var(--error-color);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: var(--spacing-xs);
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 4px;
+      transition: background-color var(--transition-speed),
+                  transform 100ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .transaction-delete:hover {
+      background-color: rgba(244, 67, 54, 0.1);
+    }
+    
+    .transaction-delete:active {
+      transform: scale(0.95);
+    }
+    
+    .transaction-delete:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.2);
+    }
+    
+    [data-theme="dark"] .transaction-delete:hover {
+      background-color: rgba(239, 83, 80, 0.1);
+    }
+    
+    [data-theme="dark"] .transaction-delete:focus {
+      box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.2);
+    }
+    
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: var(--spacing-lg);
+      color: var(--text-secondary);
+    }
+    
+    .empty-state .empty-icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: var(--spacing-sm);
+      opacity: 0.5;
+    }
+    
+    .empty-hint {
+      font-size: 0.875rem;
+      margin-top: var(--spacing-xs);
+      opacity: 0.7;
+    }
+    
+    
+    /* ========================================
+       CATEGORY MANAGER STYLES
+       ======================================== */
+    
+    .category-list {
+      margin-bottom: var(--spacing-md);
+      padding: var(--spacing-sm);
+      background-color: var(--bg-secondary);
+      border-radius: 4px;
+      min-height: 40px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
+    
+    .category-input-group {
+      display: flex;
+      gap: var(--spacing-sm);
+    }
+    
+    .category-input-group input {
+      flex: 1;
+      padding: var(--spacing-sm);
+      font-size: var(--font-size-base);
+      font-family: var(--font-family);
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 4px;
+      transition: border-color var(--transition-speed),
+                  box-shadow var(--transition-speed);
+    }
+    
+    .category-input-group input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+    }
+    
+    [data-theme="dark"] .category-input-group input:focus {
+      box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.2);
+    }
+    
+    
+    /* ========================================
+       INTERACTIVE ELEMENT TRANSITIONS
+       ======================================== */
+    
+    /* Smooth transitions for all interactive elements */
+    button,
+    input,
+    select,
+    .transaction-item {
+      transition: all var(--transition-speed) ease;
+    }
+    
+    /* Focus visible for keyboard navigation (Task 13.2) */
+    /* Ensure all focusable elements have visible focus indicators */
+    *:focus {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+    
+    /* Enhanced focus for buttons and interactive elements */
+    button:focus,
+    a:focus,
+    input:focus,
+    select:focus,
+    .transaction-delete:focus {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+    
+    /* Skip default browser focus for consistency */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+    
+    /* Prevent transition on page load */
+    .no-transition * {
+      transition: none !important;
+    }
+    
+    /* ========================================
+       BALANCE DISPLAY STYLES
+       ======================================== */
+    
+    .balance-amount {
+      font-size: 3rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--accent-color);
+      padding: var(--spacing-md) 0;
+      transition: color var(--transition-speed),
+                  background-color var(--transition-speed);
+      border-radius: 8px;
+    }
+    
+    /* Negative balance in red */
+    .balance-amount.negative {
+      color: var(--error-color);
+    }
+    
+    /* Highlight animation when balance changes */
+    @keyframes balance-highlight {
+      0% {
+        background-color: transparent;
+      }
+      50% {
+        background-color: rgba(76, 175, 80, 0.15);
+      }
+      100% {
+        background-color: transparent;
+      }
+    }
+    
+    [data-theme="dark"] @keyframes balance-highlight {
+      0% {
+        background-color: transparent;
+      }
+      50% {
+        background-color: rgba(102, 187, 106, 0.15);
+      }
+      100% {
+        background-color: transparent;
+      }
+    }
+    
+    .balance-amount.highlight {
+      animation: balance-highlight 600ms ease-out;
+    }
+    
+    /* Responsive font size for mobile */
+    @media (max-width: 767px) {
+      .balance-amount {
+        font-size: 2.5rem;
+      }
+    }
+    
+    @media (max-width: 374px) {
+      .balance-amount {
+        font-size: 2rem;
+      }
+    }
+    
+    
+    /* ========================================
+       CHART WRAPPER STYLES
+       ======================================== */
+    
+    .chart-wrapper {
+      position: relative;
+      min-height: 300px;
+      max-height: 500px;
+      padding: var(--spacing-md) 0;
+    }
+    
+    /* Ensure canvas is responsive */
+    .chart-wrapper canvas {
+      max-width: 100%;
+      height: auto !important;
+    }
+    
+    /* Chart empty state */
+    .chart-empty-state {
+      text-align: center;
+      padding: var(--spacing-lg);
+      color: var(--text-secondary);
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .chart-empty-state .empty-icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: var(--spacing-sm);
+      opacity: 0.5;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 767px) {
+      .chart-wrapper {
+        min-height: 250px;
+        max-height: 400px;
+      }
+      
+      .chart-empty-state {
+        min-height: 250px;
+      }
+    }
+    
+    
+    /* ========================================
+       MONTHLY SUMMARY STYLES
+       ======================================== */
+    
+    .month-selector {
+      margin-bottom: var(--spacing-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+    }
+    
+    .month-selector label {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: var(--font-size-base);
+    }
+    
+    .month-selector select {
+      padding: var(--spacing-sm);
+      font-size: var(--font-size-base);
+      font-family: var(--font-family);
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: border-color var(--transition-speed),
+                  box-shadow var(--transition-speed);
+    }
+    
+    .month-selector select:hover {
+      border-color: var(--accent-color);
+    }
+    
+    .month-selector select:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+    }
+    
+    [data-theme="dark"] .month-selector select:focus {
+      box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.2);
+    }
+    
+    .summary-content {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+    
+    .summary-category-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-sm);
+      background-color: var(--bg-secondary);
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      transition: background-color var(--transition-speed);
+    }
+    
+    .summary-category-row:hover {
+      background-color: var(--border-color);
+    }
+    
+    .summary-category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .summary-category-name {
+      font-size: var(--font-size-base);
+    }
+    
+    .summary-category-amount {
+      font-weight: 600;
+      color: var(--accent-color);
+      font-size: var(--font-size-base);
+    }
+    
+    .summary-category-bar {
+      width: 100%;
+      height: 8px;
+      background-color: var(--border-color);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .summary-category-bar-fill {
+      height: 100%;
+      background-color: var(--accent-color);
+      border-radius: 4px;
+      transition: width 300ms ease-out;
+    }
+    
+    .summary-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-md) var(--spacing-sm);
+      margin-top: var(--spacing-sm);
+      border-top: 2px solid var(--border-color);
+      font-weight: 600;
+      font-size: var(--font-size-lg);
+      color: var(--text-primary);
+    }
+    
+    .summary-total-label {
+      color: var(--text-primary);
+    }
+    
+    .summary-total-amount {
+      color: var(--accent-color);
+    }
+    
+    .summary-empty-state {
+      text-align: center;
+      padding: var(--spacing-lg);
+      color: var(--text-secondary);
+    }
+    
+    .summary-empty-state .empty-icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: var(--spacing-sm);
+      opacity: 0.5;
+    }
+    
+    /* Responsive adjustments for monthly summary */
+    @media (max-width: 767px) {
+      .summary-category-header {
+        font-size: 0.875rem;
+      }
+      
+      .summary-total-row {
+        font-size: 1.125rem;
+      }
+    }
+    
+    
+    /* ========================================
+       TOAST NOTIFICATION SYSTEM
+       ======================================== */
+    
+    #toast-container {
+      position: fixed;
+      top: 80px;
+      right: var(--spacing-md);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      max-width: 400px;
+    }
+    
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md);
+      background-color: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-left: 4px solid var(--accent-color);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px var(--shadow);
+      animation: toast-slide-in 300ms ease-out;
+      min-width: 280px;
+    }
+    
+    @keyframes toast-slide-in {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes toast-slide-out {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+    
+    .toast.hiding {
+      animation: toast-slide-out 300ms ease-out;
+    }
+    
+    .toast-error {
+      border-left-color: var(--error-color);
+    }
+    
+    .toast-warning {
+      border-left-color: #ff9800;
+    }
+    
+    .toast-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    
+    .toast-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+    }
+    
+    .toast-message {
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: var(--font-size-base);
+    }
+    
+    .toast-detail {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: background-color var(--transition-speed),
+                  color var(--transition-speed);
+      flex-shrink: 0;
+    }
+    
+    .toast-close:hover {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+    
+    /* Mobile adjustments for toasts */
+    @media (max-width: 767px) {
+      #toast-container {
+        top: auto;
+        bottom: var(--spacing-md);
+        right: var(--spacing-sm);
+        left: var(--spacing-sm);
+        max-width: none;
+      }
+      
+      .toast {
+        min-width: auto;
+      }
+    }
+    
+    
+    /* ========================================
+       STORAGE UNAVAILABLE BANNER
+       ======================================== */
+    
+    #storage-banner {
+      display: none;
+      background-color: #ff9800;
+      color: #ffffff;
+      padding: var(--spacing-md);
+      text-align: center;
+      font-weight: 500;
+      font-size: var(--font-size-base);
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    
+    #storage-banner.show {
+      display: block;
+    }
+    
+    #storage-banner a {
+      color: #ffffff;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+    
+    #storage-banner a:hover {
+      text-decoration: none;
+    }
+    
+    /* Additional CSS will be added in subsequent tasks */
+    
+    /* ========================================
+       ACCESSIBILITY - VISUALLY HIDDEN
+       ======================================== */
+    
+    /* Hide element visually but keep it accessible to screen readers */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- NoScript message for JavaScript disabled scenario (Task 15.3) -->
+  <noscript>
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: #f8f9fa; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+      <div style="max-width: 600px; background: #ffffff; padding: 3rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; border: 3px solid #ffc107;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+        <h1 style="color: #333; margin: 0 0 1rem 0; font-size: 2rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">JavaScript Required</h1>
+        <p style="color: #666; margin: 0 0 1.5rem 0; font-size: 1.125rem; line-height: 1.6;">The Expense & Budget Visualizer requires JavaScript to function properly.</p>
+        <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; text-align: left;">
+          <strong style="color: #856404; display: block; margin-bottom: 0.5rem;">To enable JavaScript:</strong>
+          <ul style="color: #856404; margin: 0; padding-left: 1.5rem; text-align: left;">
+            <li style="margin-bottom: 0.5rem;"><strong>Chrome/Edge:</strong> Settings → Privacy and security → Site settings → JavaScript → Allow</li>
+            <li style="margin-bottom: 0.5rem;"><strong>Firefox:</strong> about:config → javascript.enabled → true</li>
+            <li style="margin-bottom: 0.5rem;"><strong>Safari:</strong> Preferences → Security → Enable JavaScript</li>
+          </ul>
+        </div>
+        <p style="color: #999; font-size: 0.875rem; margin: 0;">After enabling JavaScript, please reload this page.</p>
+      </div>
+    </div>
+  </noscript>
+  
+  <div class="app-container">
+    <!-- Storage Unavailable Banner -->
+    <div id="storage-banner" role="alert">
+      ⚠️ Storage unavailable. Data will not persist between browser sessions.
+    </div>
+    
+    <!-- Toast Notification Container -->
+    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+    
+    <header class="app-header">
+      <h1>Expense & Budget Visualizer</h1>
+      <button id="theme-toggle" aria-label="Toggle dark/light mode">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+      </button>
+    </header>
+    
+    <main class="app-main">
+      <!-- Balance Display -->
+      <section id="balance-section" class="card">
+        <h2>Total Spending</h2>
+        <div id="balance-display" class="balance-amount">$0.00</div>
+      </section>
+      
+      <!-- Transaction Form -->
+      <section id="form-section" class="card">
+        <h2>Add New Expense</h2>
+        <form id="transaction-form">
+          <div class="form-group">
+            <label for="item-name">Item Name</label>
+            <input type="text" id="item-name" name="name" 
+                   maxlength="100" required
+                   aria-describedby="item-name-error">
+            <span class="error-message" id="item-name-error" role="alert" aria-live="polite"></span>
+          </div>
+          
+          <div class="form-group">
+            <label for="amount">Amount</label>
+            <input type="number" id="amount" name="amount" 
+                   min="0.01" max="999999999.99" step="0.01" required
+                   aria-describedby="amount-error">
+            <span class="error-message" id="amount-error" role="alert" aria-live="polite"></span>
+          </div>
+          
+          <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category" required
+                    aria-describedby="category-error">
+              <option value="">Select category...</option>
+            </select>
+            <span class="error-message" id="category-error" role="alert" aria-live="polite"></span>
+          </div>
+          
+          <button type="submit" class="btn-primary">Add Transaction</button>
+        </form>
+      </section>
+      
+      <!-- Category Manager -->
+      <section id="category-section" class="card">
+        <h2>Manage Categories</h2>
+        <div id="current-categories" class="category-list"></div>
+        <div class="category-input-group">
+          <label for="new-category" class="visually-hidden">New category name</label>
+          <input type="text" id="new-category" placeholder="New category name" 
+                 maxlength="50"
+                 aria-describedby="new-category-error">
+          <button id="add-category-btn" class="btn-secondary">Add</button>
+        </div>
+        <span class="error-message" id="new-category-error" role="alert" aria-live="polite"></span>
+      </section>
+      
+      <!-- Transaction List -->
+      <section id="list-section" class="card">
+        <h2>Your Expenses</h2>
+        <div id="transaction-list" class="transaction-container"></div>
+      </section>
+      
+      <!-- Pie Chart -->
+      <section id="chart-section" class="card">
+        <h2>Spending by Category</h2>
+        <div class="chart-wrapper">
+          <canvas id="pie-chart"></canvas>
+        </div>
+      </section>
+      
+      <!-- Monthly Summary -->
+      <section id="summary-section" class="card">
+        <h2>Monthly Summary</h2>
+        <div class="month-selector">
+          <label for="month-select">Select Month:</label>
+          <select id="month-select"></select>
+        </div>
+        <div id="monthly-summary-content"></div>
+      </section>
+    </main>
+    
+    <footer class="app-footer">
+      <p>All data stored locally in your browser</p>
+    </footer>
+  </div>
+  
+  <script>
+    // ========================================
+    // EXPENSE & BUDGET VISUALIZER
+    // Single-Page Application with Vanilla JavaScript
+    // ========================================
+    
+    (function() {
+      'use strict';
+      
+      // ========================================
+      // UTILITY FUNCTIONS
+      // ========================================
+      const Utils = (function() {
+        /**
+         * Debounces a function call - delays execution until after the wait time has elapsed
+         * since the last invocation.
+         * Task 14.1: Add debounce function for real-time validation (300ms delay)
+         * 
+         * @param {Function} func - The function to debounce
+         * @param {number} wait - Wait time in milliseconds
+         * @returns {Function} Debounced function
+         */
+        function debounce(func, wait) {
+          let timeout;
+          return function executedFunction(...args) {
+            const later = () => {
+              clearTimeout(timeout);
+              func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+          };
+        }
+        
+        /**
+         * Throttles a function call - ensures function is called at most once per wait period.
+         * Useful for performance optimization of frequently fired events.
+         * 
+         * @param {Function} func - The function to throttle
+         * @param {number} wait - Wait time in milliseconds
+         * @returns {Function} Throttled function
+         */
+        function throttle(func, wait) {
+          let inThrottle;
+          return function executedFunction(...args) {
+            if (!inThrottle) {
+              func(...args);
+              inThrottle = true;
+              setTimeout(() => inThrottle = false, wait);
+            }
+          };
+        }
+        
+        // Public API
+        return {
+          debounce: debounce,
+          throttle: throttle
+        };
+      })();
+      
+      
+      // ========================================
+      // PERFORMANCE MONITOR MODULE
+      // Task 14.2: Add performance.now() timestamps to measure critical operations
+      // Task 14.2: Log warnings if operations exceed time budgets
+      // ========================================
+      const PerformanceMonitor = (function() {
+        // Time budget thresholds (in milliseconds)
+        const TIME_BUDGETS = {
+          addTransaction: 1000,      // 1 second
+          deleteTransaction: 1000,   // 1 second
+          uiUpdate: 300,             // 300ms
+          initialLoad: 2000,         // 2 seconds
+          dataLoad: 500              // 500ms
+        };
+        
+        // Active measurements
+        const measurements = {};
+        
+        /**
+         * Starts a performance measurement.
+         * Task 14.2: Add performance.now() timestamps
+         * 
+         * @param {string} operationName - Name of the operation being measured
+         * @returns {number} Start timestamp
+         */
+        function start(operationName) {
+          const timestamp = performance.now();
+          measurements[operationName] = timestamp;
+          return timestamp;
+        }
+        
+        /**
+         * Ends a performance measurement and logs if budget is exceeded.
+         * Task 14.2: Log warnings to console if operations exceed time budgets
+         * 
+         * @param {string} operationName - Name of the operation being measured
+         * @param {string} budgetType - Type of time budget to check against
+         * @returns {number} Duration in milliseconds
+         */
+        function end(operationName, budgetType) {
+          const endTime = performance.now();
+          const startTime = measurements[operationName];
+          
+          if (!startTime) {
+            console.warn('PerformanceMonitor: No start time found for', operationName);
+            return 0;
+          }
+          
+          const duration = endTime - startTime;
+          const budget = TIME_BUDGETS[budgetType];
+          
+          // Log performance measurement
+          console.log(`[Performance] ${operationName}: ${duration.toFixed(2)}ms`);
+          
+          // Check if budget was exceeded
+          if (budget && duration > budget) {
+            console.warn(`[Performance Warning] ${operationName} exceeded time budget!`);
+            console.warn(`  Duration: ${duration.toFixed(2)}ms`);
+            console.warn(`  Budget: ${budget}ms`);
+            console.warn(`  Exceeded by: ${(duration - budget).toFixed(2)}ms`);
+          }
+          
+          // Clean up measurement
+          delete measurements[operationName];
+          
+          return duration;
+        }
+        
+        /**
+         * Measures a synchronous function execution.
+         * 
+         * @param {string} operationName - Name of the operation
+         * @param {Function} func - Function to measure
+         * @param {string} budgetType - Type of time budget to check
+         * @returns {*} Result of the function
+         */
+        function measure(operationName, func, budgetType) {
+          start(operationName);
+          const result = func();
+          end(operationName, budgetType);
+          return result;
+        }
+        
+        /**
+         * Logs current time budgets for reference.
+         */
+        function logBudgets() {
+          console.log('[Performance] Time Budgets:');
+          Object.entries(TIME_BUDGETS).forEach(([operation, budget]) => {
+            console.log(`  ${operation}: ${budget}ms`);
+          });
+        }
+        
+        // Public API
+        return {
+          start: start,
+          end: end,
+          measure: measure,
+          logBudgets: logBudgets,
+          TIME_BUDGETS: TIME_BUDGETS
+        };
+      })();
+      
+      
+      // ========================================
+      // STORAGE MANAGER MODULE
+      // ========================================
+      const StorageManager = (function() {
+        // Check if Local Storage is available (detects private browsing mode)
+        const STORAGE_AVAILABLE = checkStorageAvailability();
+        
+        // Storage event listeners
+        const listeners = {};
+        
+        /**
+         * Checks if Local Storage is available and functional.
+         * Returns false in private browsing mode or when storage is disabled.
+         * @returns {boolean} True if storage is available, false otherwise
+         */
+        function checkStorageAvailability() {
+          try {
+            const test = '__storage_test__';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
+            return true;
+          } catch (e) {
+            console.warn('Local Storage is not available:', e);
+            console.error('Storage Error Details:', {
+              name: e.name,
+              message: e.message,
+              code: e.code
+            });
+            return false;
+          }
+        }
+        
+        /**
+         * Registers an event listener for storage errors.
+         * @param {string} eventName - Event name ('quota-exceeded' or 'unavailable')
+         * @param {Function} callback - Callback function
+         */
+        function on(eventName, callback) {
+          if (!listeners[eventName]) {
+            listeners[eventName] = [];
+          }
+          listeners[eventName].push(callback);
+        }
+        
+        /**
+         * Emits a storage event to all registered listeners.
+         * @param {string} eventName - Event name
+         * @param {*} data - Event data
+         */
+        function emit(eventName, data) {
+          if (listeners[eventName]) {
+            listeners[eventName].forEach(function(callback) {
+              try {
+                callback(data);
+              } catch (e) {
+                console.error('Error in storage event listener:', e);
+              }
+            });
+          }
+        }
+        
+        /**
+         * Saves data to Local Storage with version wrapper and JSON serialization.
+         * Handles quota exceeded errors gracefully.
+         * Requirements: 12.1 - Console error logging with details
+         * @param {string} key - Storage key (e.g., 'ebv_transactions_v1')
+         * @param {*} data - Data to store (will be JSON serialized)
+         * @returns {boolean} True if save succeeded, false otherwise
+         */
+        function save(key, data) {
+          if (!STORAGE_AVAILABLE) {
+            console.error('Storage save failed: Local Storage not available');
+            console.error('Storage Error Details:', {
+              key: key,
+              reason: 'Local Storage is not available or disabled',
+              timestamp: new Date().toISOString()
+            });
+            emit('unavailable', { key: key, operation: 'save' });
+            return false;
+          }
+          
+          try {
+            const wrapper = { 
+              version: "1.0", 
+              data: data 
+            };
+            const serialized = JSON.stringify(wrapper);
+            localStorage.setItem(key, serialized);
+            return true;
+          } catch (e) {
+            // Handle quota exceeded error (Requirement 5.5, 12.1)
+            if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
+              console.error('Storage quota exceeded:', e);
+              console.error('Storage Error Details:', {
+                key: key,
+                errorName: e.name,
+                errorCode: e.code,
+                errorMessage: e.message,
+                dataSize: serialized ? serialized.length : 'unknown',
+                timestamp: new Date().toISOString(),
+                recommendation: 'Delete old transactions to free up space'
+              });
+              emit('quota-exceeded', { key: key, error: e });
+            } else {
+              console.error('Storage save failed:', e);
+              console.error('Storage Error Details:', {
+                key: key,
+                errorName: e.name,
+                errorCode: e.code,
+                errorMessage: e.message,
+                timestamp: new Date().toISOString()
+              });
+            }
+            return false;
+          }
+        }
+        
+        /**
+         * Loads data from Local Storage with JSON parsing and error handling.
+         * Requirements: 12.1 - Console error logging with details
+         * Requirements: 12.3 - Handle data corruption with version checking
+         * @param {string} key - Storage key to retrieve
+         * @returns {{success: boolean, data: *|null, error: string|null}} Result object with success status, data, and error message
+         */
+        function load(key) {
+          if (!STORAGE_AVAILABLE) {
+            console.warn('Storage load skipped: Local Storage not available');
+            return { success: false, data: null, error: 'Storage not available' };
+          }
+          
+          try {
+            const item = localStorage.getItem(key);
+            if (!item) {
+              // No data found - not an error, just empty
+              return { success: true, data: null, error: null };
+            }
+            
+            // Try to parse JSON (Requirement 12.3 - try-catch for JSON parse errors)
+            let parsed;
+            try {
+              parsed = JSON.parse(item);
+            } catch (parseError) {
+              // JSON parse error - data is corrupted (Requirement 12.3)
+              console.error('Data corruption detected - JSON parse failed for key:', key, parseError);
+              console.error('Storage Error Details:', {
+                key: key,
+                errorName: parseError.name,
+                errorMessage: parseError.message,
+                timestamp: new Date().toISOString(),
+                recommendation: 'Data is corrupted and cannot be recovered. Will fall back to defaults.'
+              });
+              return { 
+                success: false, 
+                data: null, 
+                error: `Corrupted data: Invalid JSON format for ${key}` 
+              };
+            }
+            
+            // Verify version wrapper exists (Requirement 12.3 - version checking)
+            if (parsed && typeof parsed === 'object' && parsed.version) {
+              // Check version compatibility
+              if (parsed.version === "1.0") {
+                // Version 1.0 - current version
+                return { success: true, data: parsed.data, error: null };
+              } else {
+                // Unknown version - may need migration in future
+                console.warn('Unknown data version for key:', key, 'Version:', parsed.version);
+                console.error('Storage Error Details:', {
+                  key: key,
+                  version: parsed.version,
+                  expectedVersion: '1.0',
+                  timestamp: new Date().toISOString(),
+                  recommendation: 'Data version mismatch. Will fall back to defaults.'
+                });
+                return { 
+                  success: false, 
+                  data: null, 
+                  error: `Incompatible data version ${parsed.version} for ${key}` 
+                };
+              }
+            }
+            
+            // Fallback for data without version wrapper (legacy support)
+            console.warn('Loaded data without version wrapper for key:', key);
+            return { success: true, data: parsed, error: null };
+          } catch (e) {
+            // Unexpected error during load (Requirement 12.3 - log corruption errors)
+            console.error('Unexpected storage load error for key:', key, e);
+            console.error('Storage Error Details:', {
+              key: key,
+              errorName: e.name,
+              errorMessage: e.message,
+              timestamp: new Date().toISOString(),
+              recommendation: 'Unexpected error occurred. Will fall back to defaults.'
+            });
+            return { 
+              success: false, 
+              data: null, 
+              error: `Failed to load data from ${key}: ${e.message}` 
+            };
+          }
+        }
+        
+        /**
+         * Removes data from Local Storage.
+         * @param {string} key - Storage key to remove
+         * @returns {boolean} True if removal succeeded, false otherwise
+         */
+        function clear(key) {
+          if (!STORAGE_AVAILABLE) {
+            console.warn('Storage clear skipped: Local Storage not available');
+            return false;
+          }
+          
+          try {
+            localStorage.removeItem(key);
+            return true;
+          } catch (e) {
+            console.error('Storage clear failed for key:', key, e);
+            console.error('Storage Error Details:', {
+              key: key,
+              errorName: e.name,
+              errorMessage: e.message,
+              timestamp: new Date().toISOString()
+            });
+            return false;
+          }
+        }
+        
+        /**
+         * Checks if Local Storage is available.
+         * @returns {boolean} True if storage is available, false otherwise
+         */
+        function isAvailable() {
+          return STORAGE_AVAILABLE;
+        }
+        
+        // Public API
+        return {
+          save: save,
+          load: load,
+          clear: clear,
+          isAvailable: isAvailable,
+          on: on
+        };
+      })();
+      
+      
+      // ========================================
+      // NOTIFICATION MANAGER MODULE
+      // ========================================
+      const NotificationManager = (function() {
+        let toastContainer = null;
+        let toastIdCounter = 0;
+        
+        /**
+         * Initializes the NotificationManager.
+         * Creates toast container if it doesn't exist.
+         */
+        function init() {
+          toastContainer = document.getElementById('toast-container');
+          if (!toastContainer) {
+            console.warn('Toast container not found in DOM');
+          }
+        }
+        
+        /**
+         * Shows a toast notification.
+         * @param {string} message - Main message to display
+         * @param {string} type - Toast type: 'error', 'warning', 'info', 'success'
+         * @param {string} detail - Optional detail text
+         * @param {number} duration - Duration in ms before auto-dismiss (0 = no auto-dismiss)
+         * @returns {string} Toast ID for manual dismissal
+         */
+        function showToast(message, type = 'info', detail = '', duration = 5000) {
+          if (!toastContainer) {
+            console.error('NotificationManager not initialized');
+            return null;
+          }
+          
+          const toastId = 'toast-' + (++toastIdCounter);
+          
+          // Create toast element
+          const toast = document.createElement('div');
+          toast.className = 'toast toast-' + type;
+          toast.id = toastId;
+          toast.setAttribute('role', 'alert');
+          
+          // Select icon based on type
+          let icon = 'ℹ️';
+          if (type === 'error') icon = '⚠️';
+          else if (type === 'warning') icon = '⚠️';
+          else if (type === 'success') icon = '✓';
+          
+          // Build toast HTML
+          let html = '<span class="toast-icon">' + icon + '</span>';
+          html += '<div class="toast-content">';
+          html += '<div class="toast-message">' + escapeHtml(message) + '</div>';
+          if (detail) {
+            html += '<div class="toast-detail">' + escapeHtml(detail) + '</div>';
+          }
+          html += '</div>';
+          html += '<button class="toast-close" aria-label="Close notification">×</button>';
+          
+          toast.innerHTML = html;
+          
+          // Add to container
+          toastContainer.appendChild(toast);
+          
+          // Set up close button
+          const closeBtn = toast.querySelector('.toast-close');
+          closeBtn.addEventListener('click', function() {
+            dismissToast(toastId);
+          });
+          
+          // Add Enter and Escape key handlers for close button (Task 13.2)
+          closeBtn.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === 'Escape') {
+              event.preventDefault();
+              dismissToast(toastId);
+            }
+          });
+          
+          // Auto-dismiss after duration if specified
+          if (duration > 0) {
+            setTimeout(function() {
+              dismissToast(toastId);
+            }, duration);
+          }
+          
+          return toastId;
+        }
+        
+        /**
+         * Dismisses a toast by ID.
+         * @param {string} toastId - ID of toast to dismiss
+         */
+        function dismissToast(toastId) {
+          const toast = document.getElementById(toastId);
+          if (!toast) return;
+          
+          // Add hiding animation
+          toast.classList.add('hiding');
+          
+          // Remove from DOM after animation
+          setTimeout(function() {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+          }, 300);
+        }
+        
+        /**
+         * Shows storage full error toast.
+         * Requirements: 12.1 - Display "Storage full" message
+         */
+        function showStorageFullError() {
+          return showToast(
+            'Storage full. Please delete old transactions.',
+            'error',
+            'Your browser\'s storage quota has been exceeded.',
+            0 // Don't auto-dismiss
+          );
+        }
+        
+        /**
+         * Shows storage unavailable banner.
+         * Requirements: 12.1 - Display "Storage unavailable" banner
+         */
+        function showStorageUnavailableBanner() {
+          const banner = document.getElementById('storage-banner');
+          if (banner) {
+            banner.classList.add('show');
+          }
+        }
+        
+        /**
+         * Escapes HTML to prevent XSS.
+         * @param {string} text - Text to escape
+         * @returns {string} Escaped text
+         */
+        function escapeHtml(text) {
+          const div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
+        }
+        
+        // Public API
+        return {
+          init: init,
+          showToast: showToast,
+          dismissToast: dismissToast,
+          showStorageFullError: showStorageFullError,
+          showStorageUnavailableBanner: showStorageUnavailableBanner
+        };
+      })();
+      
+      
+      // ========================================
+      // VALIDATOR MODULE
+      // ========================================
+      const Validator = (function() {
+        /**
+         * Validates transaction name field.
+         * Requirements: 1.2 - Item Name must be 1-100 characters
+         * @param {string} name - The transaction name to validate
+         * @returns {{valid: boolean, error: string}} Validation result
+         */
+        function validateTransactionName(name) {
+          const trimmed = name.trim();
+          
+          if (trimmed.length === 0) {
+            return { valid: false, error: 'Item name cannot be empty' };
+          }
+          
+          if (trimmed.length > 100) {
+            return { valid: false, error: 'Item name cannot exceed 100 characters' };
+          }
+          
+          return { valid: true, error: '' };
+        }
+        
+        /**
+         * Validates transaction amount field.
+         * Requirements: 1.3 - Amount must be 0.01-999999999.99 with max 2 decimal places
+         * @param {string|number} amount - The amount to validate
+         * @returns {{valid: boolean, error: string}} Validation result
+         */
+        function validateAmount(amount) {
+          const num = parseFloat(amount);
+          
+          if (isNaN(num)) {
+            return { valid: false, error: 'Amount must be a number' };
+          }
+          
+          if (num < 0.01) {
+            return { valid: false, error: 'Amount must be at least 0.01' };
+          }
+          
+          if (num > 999999999.99) {
+            return { valid: false, error: 'Amount cannot exceed 999,999,999.99' };
+          }
+          
+          // Check for max 2 decimal places using regex
+          const amountStr = amount.toString();
+          if (!/^\d+(\.\d{1,2})?$/.test(amountStr)) {
+            return { valid: false, error: 'Amount can have at most 2 decimal places' };
+          }
+          
+          return { valid: true, error: '' };
+        }
+        
+        /**
+         * Validates category selection.
+         * Requirements: 1.4 - Category must be selected and exist
+         * @param {string} category - The selected category
+         * @param {Array<string>} categories - Array of available categories
+         * @returns {{valid: boolean, error: string}} Validation result
+         */
+        function validateCategory(category, categories) {
+          if (!category || category.trim() === '') {
+            return { valid: false, error: 'Please select a category' };
+          }
+          
+          if (!categories.includes(category)) {
+            return { valid: false, error: 'Selected category does not exist' };
+          }
+          
+          return { valid: true, error: '' };
+        }
+        
+        /**
+         * Validates new category name.
+         * Requirements: 6.2 - Category name must be 1-50 characters, not whitespace-only, 
+         * and unique (case-insensitive)
+         * @param {string} name - The new category name to validate
+         * @param {Array<string>} existingCategories - Array of existing categories
+         * @returns {{valid: boolean, error: string}} Validation result
+         */
+        function validateCategoryName(name, existingCategories) {
+          const trimmed = name.trim();
+          
+          // Check if empty or only whitespace
+          if (trimmed.length === 0 || /^\s+$/.test(name)) {
+            return { valid: false, error: 'Category name cannot be empty or only whitespace' };
+          }
+          
+          if (trimmed.length > 50) {
+            return { valid: false, error: 'Category name cannot exceed 50 characters' };
+          }
+          
+          // Case-insensitive duplicate check
+          const lowerName = trimmed.toLowerCase();
+          if (existingCategories.some(cat => cat.toLowerCase() === lowerName)) {
+            return { valid: false, error: 'Category already exists' };
+          }
+          
+          return { valid: true, error: '' };
+        }
+        
+        // Public API
+        return {
+          validateTransactionName: validateTransactionName,
+          validateAmount: validateAmount,
+          validateCategory: validateCategory,
+          validateCategoryName: validateCategoryName
+        };
+      })();
+      
+      
+      // ========================================
+      // DATA MODEL MODULE
+      // ========================================
+      const DataModel = (function() {
+        // State: transactions array and categories array
+        let transactions = [];
+        let categories = ['Food', 'Transport', 'Fun']; // Default categories (Requirement 6.1)
+        
+        // Event system: listeners object to store event callbacks
+        const listeners = {};
+        
+        /**
+         * Emits an event to all registered listeners.
+         * @param {string} eventName - Name of the event to emit
+         * @param {*} data - Data to pass to event handlers
+         */
+        function emit(eventName, data) {
+          if (listeners[eventName]) {
+            listeners[eventName].forEach(callback => {
+              try {
+                callback(data);
+              } catch (e) {
+                console.error(`Error in event listener for ${eventName}:`, e);
+              }
+            });
+          }
+        }
+        
+        /**
+         * Registers an event listener.
+         * @param {string} eventName - Name of the event to listen for
+         * @param {Function} callback - Function to call when event is emitted
+         */
+        function on(eventName, callback) {
+          if (!listeners[eventName]) {
+            listeners[eventName] = [];
+          }
+          listeners[eventName].push(callback);
+        }
+        
+        /**
+         * Generates a UUID v4 for transaction IDs.
+         * Uses random number generation following UUID v4 specification.
+         * @returns {string} UUID v4 string
+         */
+        function generateId() {
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+        }
+        
+        /**
+         * Adds a new transaction to the state.
+         * Requirements: 1.6 - Add transaction within 1 second
+         * @param {Object} transaction - Transaction data with name, amount, category
+         * @returns {Object} The created transaction with id, timestamp, and date
+         */
+        function addTransaction(transaction) {
+          const now = new Date();
+          const newTransaction = {
+            id: generateId(),
+            name: transaction.name.trim(),
+            amount: parseFloat(transaction.amount),
+            category: transaction.category,
+            date: now.toISOString(), // ISO 8601 format
+            timestamp: now.getTime() // Unix timestamp for sorting
+          };
+          
+          transactions.push(newTransaction);
+          emit('transaction:added', newTransaction);
+          return newTransaction;
+        }
+        
+        /**
+         * Deletes a transaction by ID.
+         * Requirements: 2.4 - Remove from list and storage
+         * @param {string} id - Transaction ID to delete
+         * @returns {boolean} True if deleted, false if not found
+         */
+        function deleteTransaction(id) {
+          const index = transactions.findIndex(t => t.id === id);
+          if (index !== -1) {
+            const deleted = transactions.splice(index, 1)[0];
+            emit('transaction:deleted', deleted);
+            return true;
+          }
+          return false;
+        }
+        
+        /**
+         * Gets all transactions sorted by timestamp (newest first).
+         * Requirements: 2.1 - Display all saved transactions
+         * @returns {Array<Object>} Sorted copy of transactions array
+         */
+        function getAllTransactions() {
+          return [...transactions].sort((a, b) => b.timestamp - a.timestamp);
+        }
+        
+        /**
+         * Gets transactions filtered by month and year.
+         * Requirements: 7.1 - Filter transactions by calendar month
+         * @param {number} year - Year (e.g., 2024)
+         * @param {number} month - Month (0-11, where 0 is January)
+         * @returns {Array<Object>} Filtered transactions
+         */
+        function getTransactionsByMonth(year, month) {
+          return transactions.filter(t => {
+            const date = new Date(t.date);
+            return date.getFullYear() === year && date.getMonth() === month;
+          });
+        }
+        
+        /**
+         * Adds a new category to the categories list.
+         * Requirements: 6.4 - Add to category list within 500ms
+         * @param {string} name - Category name to add
+         * @returns {boolean} True if added, false if already exists
+         */
+        function addCategory(name) {
+          const trimmed = name.trim();
+          // Check if category already exists (case-sensitive)
+          if (!categories.includes(trimmed)) {
+            categories.push(trimmed);
+            emit('category:added', trimmed);
+            return true;
+          }
+          return false;
+        }
+        
+        /**
+         * Gets all categories.
+         * @returns {Array<string>} Copy of categories array
+         */
+        function getAllCategories() {
+          return [...categories];
+        }
+        
+        /**
+         * Calculates total balance from all transactions.
+         * Requirements: 3.1 - Sum of all transaction amounts
+         * Requirements: 3.4 - Include negative amounts
+         * Requirements: 3.5 - Return zero when empty
+         * @returns {number} Total balance
+         */
+        function getTotalBalance() {
+          return transactions.reduce((sum, t) => sum + t.amount, 0);
+        }
+        
+        /**
+         * Calculates total spending per category.
+         * Requirements: 4.1 - Category spending distribution
+         * Requirements: 4.7 - Handle uncategorized transactions
+         * @returns {Object} Object mapping category names to total amounts
+         */
+        function getCategoryTotals() {
+          const totals = {};
+          transactions.forEach(t => {
+            const cat = t.category || 'Uncategorized';
+            totals[cat] = (totals[cat] || 0) + t.amount;
+          });
+          return totals;
+        }
+        
+        /**
+         * Loads data from StorageManager and restores state.
+         * Requirements: 5.3 - Load saved transactions within 500ms
+         * Requirements: 6.6 - Restore custom categories from storage
+         * Requirements: 5.4 - Initialize with empty state if no data
+         * Requirements: 12.3 - Fall back to defaults on data corruption
+         * @returns {{transactionsLoaded: boolean, categoriesLoaded: boolean, errors: Array<string>}} Load result with status and errors
+         */
+        function loadData() {
+          const errors = [];
+          let transactionsLoaded = false;
+          let categoriesLoaded = false;
+          
+          // Load transactions with corruption handling (Requirement 12.3)
+          const transactionsResult = StorageManager.load('ebv_transactions_v1');
+          
+          if (transactionsResult.success && transactionsResult.data && Array.isArray(transactionsResult.data)) {
+            // Valid transaction data loaded
+            transactions = transactionsResult.data;
+            transactionsLoaded = true;
+            console.log('Loaded', transactions.length, 'transactions from storage');
+          } else if (transactionsResult.success && !transactionsResult.data) {
+            // No data in storage - initialize with empty array (Requirement 5.4)
+            transactions = [];
+            transactionsLoaded = true;
+            console.log('No transactions in storage - initialized empty transaction list');
+          } else {
+            // Data corruption detected - fall back to empty array (Requirement 12.3)
+            transactions = [];
+            transactionsLoaded = false;
+            const errorMsg = 'Transaction data corrupted: ' + (transactionsResult.error || 'Unknown error');
+            errors.push(errorMsg);
+            console.error(errorMsg);
+            console.error('Falling back to empty transaction list');
+            
+            // Emit corruption event for UI notification
+            emit('data:corrupted', {
+              dataType: 'transactions',
+              error: transactionsResult.error
+            });
+          }
+          
+          // Load categories with corruption handling (Requirement 12.3)
+          const categoriesResult = StorageManager.load('ebv_categories_v1');
+          
+          if (categoriesResult.success && categoriesResult.data && Array.isArray(categoriesResult.data)) {
+            // Valid category data loaded
+            categories = categoriesResult.data;
+            categoriesLoaded = true;
+            console.log('Loaded', categories.length, 'categories from storage');
+          } else if (categoriesResult.success && !categoriesResult.data) {
+            // No data in storage - initialize with default categories (Requirement 6.1)
+            categories = ['Food', 'Transport', 'Fun'];
+            categoriesLoaded = true;
+            console.log('No categories in storage - initialized with defaults:', categories);
+          } else {
+            // Data corruption detected - fall back to default categories (Requirement 12.3, 6.7)
+            categories = ['Food', 'Transport', 'Fun'];
+            categoriesLoaded = false;
+            const errorMsg = 'Category data corrupted: ' + (categoriesResult.error || 'Unknown error');
+            errors.push(errorMsg);
+            console.error(errorMsg);
+            console.error('Falling back to default categories:', categories);
+            
+            // Emit corruption event for UI notification
+            emit('data:corrupted', {
+              dataType: 'categories',
+              error: categoriesResult.error
+            });
+          }
+          
+          // Emit data loaded event
+          emit('data:loaded', {
+            transactionsLoaded: transactionsLoaded,
+            categoriesLoaded: categoriesLoaded,
+            errors: errors
+          });
+          
+          return {
+            transactionsLoaded: transactionsLoaded,
+            categoriesLoaded: categoriesLoaded,
+            errors: errors
+          };
+        }
+        
+        /**
+         * Saves current state to StorageManager.
+         * Requirements: 5.1 - Save on add
+         * Requirements: 5.2 - Save on delete
+         * Requirements: 6.5 - Persist categories
+         * Requirements: 12.1 - Emit error event on save failure
+         */
+        function saveData() {
+          const transactionsSaved = StorageManager.save('ebv_transactions_v1', transactions);
+          const categoriesSaved = StorageManager.save('ebv_categories_v1', categories);
+          
+          if (!transactionsSaved || !categoriesSaved) {
+            console.error('Failed to save data to storage');
+            emit('save:failed', {
+              transactionsSaved: transactionsSaved,
+              categoriesSaved: categoriesSaved
+            });
+            return false;
+          }
+          
+          return true;
+        }
+        
+        // Public API
+        return {
+          addTransaction: addTransaction,
+          deleteTransaction: deleteTransaction,
+          getAllTransactions: getAllTransactions,
+          getTransactionsByMonth: getTransactionsByMonth,
+          addCategory: addCategory,
+          getAllCategories: getAllCategories,
+          getTotalBalance: getTotalBalance,
+          getCategoryTotals: getCategoryTotals,
+          on: on,
+          loadData: loadData,
+          saveData: saveData
+        };
+      })();
+      
+      
+      // ========================================
+      // TRANSACTION FORM COMPONENT
+      // ========================================
+      const TransactionForm = (function() {
+        // Task 14.1: Cache DOM element references in component initialization
+        let formElement = null;
+        let nameInput = null;
+        let amountInput = null;
+        let categorySelect = null;
+        let submitButton = null;
+        let formGroups = {};
+        
+        // Task 14.1: Debounced validation functions for real-time feedback (300ms delay)
+        let debouncedValidateName;
+        let debouncedValidateAmount;
+        let debouncedValidateCategory;
+        
+        /**
+         * Initializes the TransactionForm component.
+         * Requirements: 1.2, 1.5, 1.6 - Form validation, error display, submission
+         * Task 14.1: Add debounced validation on input fields (300ms delay)
+         * @param {HTMLElement} containerElement - The form element
+         */
+        function init(containerElement) {
+          formElement = containerElement;
+          
+          // Task 14.1: Cache DOM element references
+          nameInput = formElement.querySelector('#item-name');
+          amountInput = formElement.querySelector('#amount');
+          categorySelect = formElement.querySelector('#category');
+          submitButton = formElement.querySelector('button[type="submit"]');
+          
+          // Get form groups for error display
+          formGroups = {
+            name: nameInput.closest('.form-group'),
+            amount: amountInput.closest('.form-group'),
+            category: categorySelect.closest('.form-group')
+          };
+          
+          // Task 14.1: Create debounced validation functions (300ms delay)
+          debouncedValidateName = Utils.debounce(function() {
+            const validation = Validator.validateTransactionName(nameInput.value);
+            if (!validation.valid && nameInput.value.trim() !== '') {
+              showError('name', validation.error);
+            } else {
+              clearFieldError('name');
+            }
+          }, 300);
+          
+          debouncedValidateAmount = Utils.debounce(function() {
+            const validation = Validator.validateAmount(amountInput.value);
+            if (!validation.valid && amountInput.value !== '') {
+              showError('amount', validation.error);
+            } else {
+              clearFieldError('amount');
+            }
+          }, 300);
+          
+          debouncedValidateCategory = Utils.debounce(function() {
+            const validation = Validator.validateCategory(categorySelect.value, DataModel.getAllCategories());
+            if (!validation.valid && categorySelect.value !== '') {
+              showError('category', validation.error);
+            } else {
+              clearFieldError('category');
+            }
+          }, 300);
+          
+          // Attach form submission handler
+          formElement.addEventListener('submit', handleSubmit);
+          
+          // Task 14.1: Add debounced real-time validation on input events
+          nameInput.addEventListener('input', debouncedValidateName);
+          amountInput.addEventListener('input', debouncedValidateAmount);
+          categorySelect.addEventListener('change', debouncedValidateCategory);
+          
+          // Clear errors on field focus
+          nameInput.addEventListener('focus', () => clearFieldError('name'));
+          amountInput.addEventListener('focus', () => clearFieldError('amount'));
+          categorySelect.addEventListener('focus', () => clearFieldError('category'));
+          
+          // Add Escape key handler to clear errors and reset focus (Task 13.2)
+          nameInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+              clearFieldError('name');
+            }
+          });
+          amountInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+              clearFieldError('amount');
+            }
+          });
+          categorySelect.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+              clearFieldError('category');
+            }
+          });
+          
+          // Populate category dropdown
+          refreshCategories();
+          
+          // Listen for new categories being added
+          DataModel.on('category:added', refreshCategories);
+        }
+        
+        /**
+         * Handles form submission with validation.
+         * Requirements: 1.2 - Validate on submit
+         * Requirements: 1.5 - Display inline errors
+         * Requirements: 1.6 - Add transaction and clear form
+         * Requirements: 12.1 - Preserve form input when storage save fails
+         * Task 14.2: Add performance monitoring (1s budget for add transaction)
+         * @param {Event} event - Form submit event
+         */
+        function handleSubmit(event) {
+          event.preventDefault();
+          
+          // Task 14.2: Start performance measurement
+          PerformanceMonitor.start('addTransaction');
+          
+          // Clear all previous errors
+          clearErrors();
+          
+          // Get form values
+          const name = nameInput.value;
+          const amount = amountInput.value;
+          const category = categorySelect.value;
+          
+          // Validate all fields
+          const nameValidation = Validator.validateTransactionName(name);
+          const amountValidation = Validator.validateAmount(amount);
+          const categoryValidation = Validator.validateCategory(category, DataModel.getAllCategories());
+          
+          // Check if any validation failed
+          let hasErrors = false;
+          
+          if (!nameValidation.valid) {
+            showError('name', nameValidation.error);
+            hasErrors = true;
+          }
+          
+          if (!amountValidation.valid) {
+            showError('amount', amountValidation.error);
+            hasErrors = true;
+          }
+          
+          if (!categoryValidation.valid) {
+            showError('category', categoryValidation.error);
+            hasErrors = true;
+          }
+          
+          // If there are validation errors, don't submit
+          if (hasErrors) {
+            // Auto-focus on first error field for accessibility (Task 13.2)
+            if (!nameValidation.valid) {
+              nameInput.focus();
+            } else if (!amountValidation.valid) {
+              amountInput.focus();
+            } else if (!categoryValidation.valid) {
+              categorySelect.focus();
+            }
+            
+            // Task 14.2: End measurement (validation failed)
+            PerformanceMonitor.end('addTransaction', 'addTransaction');
+            return;
+          }
+          
+          // Disable submit button during validation to prevent double-submission
+          submitButton.disabled = true;
+          
+          try {
+            // All validations passed - add transaction
+            const transaction = {
+              name: name,
+              amount: amount,
+              category: category
+            };
+            
+            const addedTransaction = DataModel.addTransaction(transaction);
+            
+            // Try to save data
+            const saved = DataModel.saveData();
+            
+            if (saved) {
+              // Save successful - reset form
+              reset();
+            } else {
+              // Save failed - preserve form input (Requirement 12.1)
+              console.error('Transaction added to memory but failed to save to storage');
+              // Form input is preserved (NOT cleared)
+              // User will see error notification from AppController
+            }
+          } catch (error) {
+            console.error('Error adding transaction:', error);
+            showError('name', 'Failed to add transaction. Please try again.');
+          } finally {
+            // Re-enable submit button
+            submitButton.disabled = false;
+            
+            // Task 14.2: End performance measurement
+            PerformanceMonitor.end('addTransaction', 'addTransaction');
+          }
+        }
+        
+        /**
+         * Displays an inline error message for a specific field.
+         * Requirements: 1.5 - Display inline errors
+         * @param {string} fieldName - The field name ('name', 'amount', or 'category')
+         * @param {string} message - The error message to display
+         */
+        function showError(fieldName, message) {
+          const formGroup = formGroups[fieldName];
+          if (!formGroup) return;
+          
+          const errorSpan = formGroup.querySelector('.error-message');
+          if (errorSpan) {
+            errorSpan.textContent = message;
+            errorSpan.setAttribute('role', 'alert');
+          }
+          
+          // Add error class to form group
+          formGroup.classList.add('error');
+          
+          // Add aria-invalid to input
+          const input = formGroup.querySelector('input, select');
+          if (input) {
+            input.setAttribute('aria-invalid', 'true');
+          }
+        }
+        
+        /**
+         * Clears the error message for a specific field.
+         * @param {string} fieldName - The field name ('name', 'amount', or 'category')
+         */
+        function clearFieldError(fieldName) {
+          const formGroup = formGroups[fieldName];
+          if (!formGroup) return;
+          
+          const errorSpan = formGroup.querySelector('.error-message');
+          if (errorSpan) {
+            errorSpan.textContent = '';
+            errorSpan.removeAttribute('role');
+          }
+          
+          // Remove error class from form group
+          formGroup.classList.remove('error');
+          
+          // Remove aria-invalid from input
+          const input = formGroup.querySelector('input, select');
+          if (input) {
+            input.removeAttribute('aria-invalid');
+          }
+        }
+        
+        /**
+         * Clears all error messages from the form.
+         */
+        function clearErrors() {
+          clearFieldError('name');
+          clearFieldError('amount');
+          clearFieldError('category');
+        }
+        
+        /**
+         * Resets the form to its default empty state.
+         * Requirements: 1.6 - Clear form fields after successful submission
+         */
+        function reset() {
+          formElement.reset();
+          clearErrors();
+          
+          // Set category dropdown back to default empty selection
+          categorySelect.value = '';
+        }
+        
+        /**
+         * Refreshes the category dropdown with current categories from DataModel.
+         * Requirements: 6.4 - Update form dropdown when new category is added
+         */
+        function refreshCategories() {
+          const categories = DataModel.getAllCategories();
+          const currentValue = categorySelect.value;
+          
+          // Clear existing options except the first placeholder
+          categorySelect.innerHTML = '<option value="">Select category...</option>';
+          
+          // Add all categories as options
+          categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
+          });
+          
+          // Restore selected value if it still exists
+          if (currentValue && categories.includes(currentValue)) {
+            categorySelect.value = currentValue;
+          }
+        }
+        
+        // Public API
+        return {
+          init: init,
+          reset: reset,
+          showError: showError,
+          clearErrors: clearErrors,
+          refreshCategories: refreshCategories
+        };
+      })();
+      
+      
+      // ========================================
+      // TRANSACTION LIST COMPONENT
+      // ========================================
+      const TransactionList = (function() {
+        let containerElement = null;
+        
+        /**
+         * Initializes the TransactionList component.
+         * Requirements: 5.2 - Set up list container
+         * @param {HTMLElement} container - DOM element to render the list into
+         */
+        function init(container) {
+          containerElement = container;
+          
+          // Subscribe to DataModel events
+          DataModel.on('transaction:added', function(transaction) {
+            // Re-render the list
+            render(DataModel.getAllTransactions());
+            // Auto-scroll to bottom when new transaction is added (Requirement 5.2)
+            setTimeout(function() {
+              if (containerElement) {
+                containerElement.scrollTop = containerElement.scrollHeight;
+              }
+            }, 100);
+          });
+          
+          DataModel.on('transaction:deleted', function(deletedTransaction) {
+            // Re-render the list
+            render(DataModel.getAllTransactions());
+          });
+          
+          // Initial render with empty state
+          showEmpty();
+        }
+        
+        /**
+         * Renders the transaction list with provided transactions.
+         * Requirements: 2.1 - Display all transactions
+         * Requirements: 2.2 - Show item, amount, category
+         * Requirements: 2.3 - Update without reload
+         * Task 14.1: Use documentFragment for batch DOM updates (minimize reflows)
+         * @param {Array<Object>} transactions - Array of transaction objects
+         */
+        function render(transactions) {
+          if (!containerElement) {
+            console.error('TransactionList not initialized');
+            return;
+          }
+          
+          // Show empty state if no transactions
+          if (!transactions || transactions.length === 0) {
+            showEmpty();
+            return;
+          }
+          
+          // Task 14.1: Use documentFragment for batch DOM updates
+          // This minimizes reflows by doing a single DOM insertion instead of multiple
+          const fragment = document.createDocumentFragment();
+          
+          // Create list items for each transaction
+          transactions.forEach(function(transaction) {
+            const item = createTransactionItem(transaction);
+            fragment.appendChild(item);
+          });
+          
+          // Task 14.1: Batch style changes - clear and insert in one operation
+          // Clear the container and append all items at once
+          containerElement.innerHTML = '';
+          containerElement.appendChild(fragment);
+        }
+        
+        /**
+         * Creates a DOM element for a single transaction.
+         * @param {Object} transaction - Transaction object with id, name, amount, category
+         * @returns {HTMLElement} The transaction item element
+         */
+        function createTransactionItem(transaction) {
+          // Create container div
+          const item = document.createElement('div');
+          item.className = 'transaction-item';
+          item.dataset.id = transaction.id;
+          
+          // Create info section
+          const info = document.createElement('div');
+          info.className = 'transaction-info';
+          
+          // Transaction name
+          const name = document.createElement('div');
+          name.className = 'transaction-name';
+          name.textContent = transaction.name;
+          info.appendChild(name);
+          
+          // Transaction details (amount and category)
+          const details = document.createElement('div');
+          details.className = 'transaction-details';
+          
+          const amount = document.createElement('span');
+          amount.className = 'transaction-amount';
+          amount.textContent = '$' + transaction.amount.toFixed(2);
+          details.appendChild(amount);
+          
+          const separator = document.createElement('span');
+          separator.textContent = '•';
+          details.appendChild(separator);
+          
+          const category = document.createElement('span');
+          category.className = 'transaction-category';
+          category.textContent = transaction.category;
+          details.appendChild(category);
+          
+          info.appendChild(details);
+          item.appendChild(info);
+          
+          // Create delete button
+          // Requirements: 2.4 - Delete functionality
+          // Requirements: 13.2 - Keyboard navigation (Enter key support)
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'transaction-delete';
+          deleteBtn.textContent = '×';
+          deleteBtn.setAttribute('aria-label', 'Delete ' + transaction.name);
+          deleteBtn.setAttribute('type', 'button'); // Prevent form submission if inside a form
+          
+          // Add click handler for delete
+          deleteBtn.addEventListener('click', function() {
+            handleDelete(transaction.id, item);
+          });
+          
+          // Add Enter key handler for delete (Task 13.2)
+          deleteBtn.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              handleDelete(transaction.id, item);
+            }
+          });
+          
+          item.appendChild(deleteBtn);
+          
+          return item;
+        }
+        
+        /**
+         * Handles deletion of a transaction with smooth animation.
+         * Requirements: 2.4 - Delete from list and storage
+         * Requirements: 5.2 - Smooth fade-out animation
+         * Requirements: 13.2 - Maintain focus management when removing elements
+         * Task 14.2: Add performance monitoring (1s budget for delete transaction)
+         * @param {string} id - Transaction ID to delete
+         * @param {HTMLElement} itemElement - DOM element to animate
+         */
+        function handleDelete(id, itemElement) {
+          // Task 14.2: Start performance measurement
+          PerformanceMonitor.start('deleteTransaction');
+          
+          // Task 13.2: Store focus management info before deletion
+          const currentlyFocused = document.activeElement;
+          const deleteButton = itemElement.querySelector('.transaction-delete');
+          const shouldManageFocus = (currentlyFocused === deleteButton);
+          
+          // Find next focusable element before deletion
+          let nextFocusElement = null;
+          if (shouldManageFocus) {
+            const nextItem = itemElement.nextElementSibling;
+            const prevItem = itemElement.previousElementSibling;
+            
+            if (nextItem && nextItem.classList.contains('transaction-item')) {
+              nextFocusElement = nextItem.querySelector('.transaction-delete');
+            } else if (prevItem && prevItem.classList.contains('transaction-item')) {
+              nextFocusElement = prevItem.querySelector('.transaction-delete');
+            } else {
+              // No other transactions, focus will move to form
+              nextFocusElement = document.querySelector('#item-name');
+            }
+          }
+          
+          // Add deleting class for fade-out animation
+          itemElement.classList.add('deleting');
+          
+          // Wait for animation to complete (300ms as per CSS transition)
+          setTimeout(function() {
+            // Call DataModel to delete the transaction
+            const success = DataModel.deleteTransaction(id);
+            
+            if (success) {
+              // Save data to storage
+              DataModel.saveData();
+              
+              // Task 13.2: Manage focus after deletion
+              if (shouldManageFocus && nextFocusElement) {
+                // Use setTimeout to ensure DOM is updated
+                setTimeout(function() {
+                  nextFocusElement.focus();
+                }, 50);
+              }
+              
+              // Task 14.2: End performance measurement
+              PerformanceMonitor.end('deleteTransaction', 'deleteTransaction');
+            } else {
+              // If delete failed, remove the deleting class
+              itemElement.classList.remove('deleting');
+              // Show error message (Requirement 2.6)
+              console.error('Failed to delete transaction');
+              alert('Failed to delete transaction. Please try again.');
+              
+              // Task 14.2: End performance measurement
+              PerformanceMonitor.end('deleteTransaction', 'deleteTransaction');
+            }
+          }, 300);
+        }
+        
+        /**
+         * Displays empty state message when no transactions exist.
+         * Requirements: 2.5 - Empty state message
+         */
+        function showEmpty() {
+          if (!containerElement) {
+            return;
+          }
+          
+          containerElement.innerHTML = `
+            <div class="empty-state">
+              <span class="empty-icon">📝</span>
+              <div>No transactions recorded</div>
+              <div class="empty-hint">Start by adding one above!</div>
+            </div>
+          `;
+        }
+        
+        // Public API
+        return {
+          init: init,
+          render: render,
+          showEmpty: showEmpty
+        };
+      })();
+      
+      
+      // ========================================
+      // BALANCE DISPLAY COMPONENT
+      // ========================================
+      const BalanceDisplay = (function() {
+        let containerElement = null;
+        let currentTotal = 0;
+        
+        /**
+         * Initializes the BalanceDisplay component.
+         * Requirements: 3.1 - Display total spending
+         * @param {HTMLElement} element - Container element for balance display
+         */
+        function init(element) {
+          if (!element) {
+            console.error('BalanceDisplay: Container element is required');
+            return;
+          }
+          
+          containerElement = element;
+          
+          // Subscribe to DataModel events
+          DataModel.on('transaction:added', handleTransactionChange);
+          DataModel.on('transaction:deleted', handleTransactionChange);
+          DataModel.on('data:loaded', handleDataLoaded);
+          
+          // Initial display
+          update(DataModel.getTotalBalance());
+        }
+        
+        /**
+         * Updates the balance display with formatted currency.
+         * Requirements: 3.2 - Update on add within 1s
+         * Requirements: 3.3 - Update on delete within 1s
+         * Requirements: 3.4 - Include negative amounts
+         * Requirements: 3.5 - Show zero when empty
+         * @param {number} total - Total balance to display
+         */
+        function update(total) {
+          if (!containerElement) {
+            console.error('BalanceDisplay: Component not initialized');
+            return;
+          }
+          
+          // Format number with 2 decimal places and thousands separators
+          const formatted = total.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+          
+          // Update display text
+          containerElement.textContent = formatted;
+          
+          // Apply negative styling if amount is negative
+          if (total < 0) {
+            containerElement.classList.add('negative');
+          } else {
+            containerElement.classList.remove('negative');
+          }
+          
+          // Add highlight animation if value changed (but not on first load)
+          if (currentTotal !== total && currentTotal !== 0) {
+            // Remove existing animation class
+            containerElement.classList.remove('highlight');
+            
+            // Force reflow to restart animation
+            void containerElement.offsetWidth;
+            
+            // Add animation class
+            containerElement.classList.add('highlight');
+            
+            // Remove animation class after completion
+            setTimeout(() => {
+              containerElement.classList.remove('highlight');
+            }, 600);
+          }
+          
+          currentTotal = total;
+        }
+        
+        /**
+         * Handles transaction changes (add/delete).
+         * Recalculates and updates the display.
+         */
+        function handleTransactionChange() {
+          const newTotal = DataModel.getTotalBalance();
+          update(newTotal);
+        }
+        
+        /**
+         * Handles data loaded event.
+         * Updates display with loaded data.
+         */
+        function handleDataLoaded() {
+          const newTotal = DataModel.getTotalBalance();
+          // Don't show animation on initial load
+          currentTotal = newTotal;
+          update(newTotal);
+        }
+        
+        // Public API
+        return {
+          init: init,
+          update: update
+        };
+      })();
+      
+      
+      // ========================================
+      // PIE CHART COMPONENT
+      // ========================================
+      const PieChart = (function() {
+        // Task 14.1: Cache DOM element references
+        let canvasElement = null;
+        let chartInstance = null;
+        let chartAvailable = true; // Track if Chart.js is available
+        let lastCategoryTotals = null; // Task 14.1: Cache last data to avoid unnecessary re-renders
+        
+        // Color palette with 20 distinct colors for category differentiation (Requirement 4.4)
+        const COLORS = [
+          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+          '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF9F40',
+          '#36A2EB', '#FFCE56', '#9966FF', '#FF6384', '#4BC0C0',
+          '#C9CBCF', '#FF9F40', '#36A2EB', '#FFCE56', '#9966FF'
+        ];
+        
+        /**
+         * Initializes the PieChart component.
+         * Requirements: Store canvas reference and get 2D context
+         * Task 12.2: Add try-catch wrapper around Chart.js initialization
+         * @param {HTMLCanvasElement} canvas - The canvas element for rendering the chart
+         */
+        function init(canvas) {
+          if (!canvas) {
+            console.error('PieChart init failed: canvas element is null');
+            return;
+          }
+          
+          canvasElement = canvas;
+          
+          // Check if Chart.js is available (Requirements 10.2, 10.3 - Task 12.2)
+          try {
+            if (typeof Chart === 'undefined') {
+              throw new Error('Chart.js library not loaded');
+            }
+            
+            // Verify Chart constructor is accessible
+            if (typeof Chart !== 'function') {
+              throw new Error('Chart.js constructor not available');
+            }
+            
+            chartAvailable = true;
+            console.log('PieChart component initialized with Chart.js');
+          } catch (error) {
+            console.error('Chart.js initialization failed:', error);
+            chartAvailable = false;
+            showErrorState('Chart library could not load');
+            hideChartSection();
+            return;
+          }
+          
+          // Subscribe to data change events (Requirements 4.2, 4.3)
+          DataModel.on('transaction:added', function() {
+            update(DataModel.getCategoryTotals());
+          });
+          
+          DataModel.on('transaction:deleted', function() {
+            update(DataModel.getCategoryTotals());
+          });
+          
+          // Initial render
+          update(DataModel.getCategoryTotals());
+        }
+        
+        /**
+         * Updates the pie chart with new category totals.
+         * Requirements: 4.1 (render with percentages), 4.2 (update on add), 4.3 (update on delete)
+         * Task 12.2: Enhanced error handling for Chart.js failures
+         * Task 14.1: Avoid unnecessary chart re-renders by checking if data actually changed
+         * @param {Object} categoryTotals - Object mapping category names to amounts
+         */
+        function update(categoryTotals) {
+          if (!canvasElement) {
+            console.warn('PieChart update skipped: not initialized');
+            return;
+          }
+          
+          // Skip if Chart.js is not available (Task 12.2)
+          if (!chartAvailable) {
+            console.warn('PieChart update skipped: Chart.js not available');
+            return;
+          }
+          
+          // Task 14.1: Check if data actually changed before re-rendering
+          if (hasDataChanged(categoryTotals)) {
+            console.log('[PieChart] Data changed, updating chart');
+            // Store new data for next comparison
+            lastCategoryTotals = JSON.parse(JSON.stringify(categoryTotals));
+          } else {
+            console.log('[PieChart] Data unchanged, skipping chart update');
+            return;
+          }
+          
+          // Verify Chart.js is still accessible
+          if (typeof Chart === 'undefined') {
+            console.error('Chart.js no longer available');
+            chartAvailable = false;
+            showErrorState('Chart library could not load');
+            hideChartSection();
+            return;
+          }
+          
+          const categories = Object.keys(categoryTotals);
+          const amounts = Object.values(categoryTotals);
+          const total = amounts.reduce((sum, val) => sum + val, 0);
+          
+          // Destroy existing chart instance before creating new one (as per design)
+          try {
+            if (chartInstance) {
+              chartInstance.destroy();
+              chartInstance = null;
+            }
+          } catch (error) {
+            console.error('Failed to destroy existing chart:', error);
+            chartInstance = null;
+          }
+          
+          // Handle empty state - no spending data (Requirement 4.6)
+          if (total === 0 || categories.length === 0) {
+            showEmptyState('No spending data available');
+            return;
+          }
+          
+          // Ensure canvas is visible (remove empty state)
+          canvasElement.style.display = 'block';
+          const parent = canvasElement.parentElement;
+          if (parent) {
+            const emptyStateDiv = parent.querySelector('.chart-empty-state');
+            if (emptyStateDiv) {
+              emptyStateDiv.remove();
+            }
+          }
+          
+          // Generate colors for categories
+          const backgroundColors = categories.map((_, i) => COLORS[i % COLORS.length]);
+          
+          // Task 12.2: Wrap Chart.js initialization in try-catch
+          try {
+            // Create new Chart.js pie chart
+            chartInstance = new Chart(canvasElement, {
+              type: 'pie',
+              data: {
+                labels: categories,
+                datasets: [{
+                  data: amounts,
+                  backgroundColor: backgroundColors,
+                  borderWidth: 2,
+                  borderColor: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--bg-primary').trim() || '#ffffff'
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'right',
+                    labels: {
+                      // Customize legend to show category name and percentage (Requirement 4.5)
+                      generateLabels: function(chart) {
+                        const data = chart.data;
+                        if (!data.labels || !data.datasets || !data.datasets[0]) {
+                          return [];
+                        }
+                        
+                        return data.labels.map((label, i) => {
+                          const value = data.datasets[0].data[i];
+                          const percentage = ((value / total) * 100).toFixed(1);
+                          
+                          return {
+                            text: `${label}: ${percentage}%`,
+                            fillStyle: data.datasets[0].backgroundColor[i],
+                            hidden: false,
+                            index: i
+                          };
+                        });
+                      },
+                      color: getComputedStyle(document.documentElement)
+                        .getPropertyValue('--text-primary').trim(),
+                      font: {
+                        size: 14
+                      },
+                      padding: 10
+                    }
+                  },
+                  tooltip: {
+                    // Customize tooltip to show category, dollar amount, and percentage
+                    callbacks: {
+                      label: function(context) {
+                        const label = context.label || '';
+                        const value = context.parsed || 0;
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                      }
+                    },
+                    backgroundColor: getComputedStyle(document.documentElement)
+                      .getPropertyValue('--bg-secondary').trim(),
+                    titleColor: getComputedStyle(document.documentElement)
+                      .getPropertyValue('--text-primary').trim(),
+                    bodyColor: getComputedStyle(document.documentElement)
+                      .getPropertyValue('--text-primary').trim(),
+                    borderColor: getComputedStyle(document.documentElement)
+                      .getPropertyValue('--border-color').trim(),
+                    borderWidth: 1
+                  }
+                }
+              }
+            });
+            
+            console.log('PieChart updated with', categories.length, 'categories');
+          } catch (error) {
+            // Task 12.2: Enhanced error handling for Chart.js failures
+            console.error('Failed to create chart:', error);
+            chartAvailable = false;
+            showErrorState('Chart library could not load');
+            hideChartSection();
+          }
+        }
+        
+        /**
+         * Checks if category data has changed since last render.
+         * Task 14.1: Avoid unnecessary chart re-renders by checking if data actually changed
+         * 
+         * @param {Object} newCategoryTotals - New category totals to compare
+         * @returns {boolean} True if data has changed, false otherwise
+         */
+        function hasDataChanged(newCategoryTotals) {
+          // If no previous data, data has "changed" (first render)
+          if (!lastCategoryTotals) {
+            return true;
+          }
+          
+          // Compare JSON representations for deep equality
+          const newJson = JSON.stringify(newCategoryTotals);
+          const oldJson = JSON.stringify(lastCategoryTotals);
+          
+          return newJson !== oldJson;
+        }
+        
+        /**
+         * Displays an empty state message when no data is available.
+         * Requirements: 4.6 (empty state message)
+         * @param {string} message - The message to display
+         */
+        function showEmptyState(message) {
+          if (!canvasElement) return;
+          
+          // Hide the canvas
+          canvasElement.style.display = 'none';
+          
+          // Create or update empty state div
+          const parent = canvasElement.parentElement;
+          if (!parent) return;
+          
+          let emptyStateDiv = parent.querySelector('.chart-empty-state');
+          
+          if (!emptyStateDiv) {
+            emptyStateDiv = document.createElement('div');
+            emptyStateDiv.className = 'chart-empty-state';
+            parent.appendChild(emptyStateDiv);
+          }
+          
+          emptyStateDiv.innerHTML = `
+            <span class="empty-icon">📊</span>
+            <p>${message}</p>
+            <p class="empty-hint">Add your first transaction to see the chart</p>
+          `;
+        }
+        
+        /**
+         * Displays an error state message when Chart.js fails to load.
+         * Task 12.2: Show "Chart library could not load" message
+         * Requirements: 10.2, 10.3 - Ensure app continues to function without chart
+         * @param {string} message - The error message to display
+         */
+        function showErrorState(message) {
+          if (!canvasElement) return;
+          
+          // Hide the canvas
+          canvasElement.style.display = 'none';
+          
+          // Create or update error state div
+          const parent = canvasElement.parentElement;
+          if (!parent) return;
+          
+          let errorStateDiv = parent.querySelector('.chart-empty-state');
+          
+          if (!errorStateDiv) {
+            errorStateDiv = document.createElement('div');
+            errorStateDiv.className = 'chart-empty-state';
+            parent.appendChild(errorStateDiv);
+          }
+          
+          errorStateDiv.innerHTML = `
+            <span class="empty-icon">⚠️</span>
+            <p>${message}</p>
+            <p class="empty-hint">The chart feature is unavailable, but you can still track your expenses</p>
+          `;
+          
+          console.warn('Chart error state displayed:', message);
+        }
+        
+        /**
+         * Hides the chart section gracefully when Chart.js is unavailable.
+         * Task 12.2: Hide chart section to avoid confusion
+         * Requirements: 10.3 - Rest of application continues to function
+         */
+        function hideChartSection() {
+          if (!canvasElement) return;
+          
+          const chartSection = canvasElement.closest('#chart-section');
+          if (chartSection) {
+            // Add a visual indicator that the section has reduced functionality
+            chartSection.style.opacity = '0.6';
+            chartSection.setAttribute('aria-label', 'Chart unavailable - Chart.js library could not be loaded');
+            
+            console.log('Chart section hidden gracefully due to Chart.js unavailability');
+          }
+        }
+        
+        /**
+         * Destroys the chart instance and cleans up resources.
+         * Task 12.2: Add error handling for destroy operation
+         */
+        function destroy() {
+          try {
+            if (chartInstance) {
+              chartInstance.destroy();
+              chartInstance = null;
+            }
+          } catch (error) {
+            console.error('Failed to destroy chart instance:', error);
+            chartInstance = null;
+          }
+        }
+        
+        // Public API
+        return {
+          init: init,
+          update: update,
+          destroy: destroy
+        };
+      })();
+      
+      
+      // ========================================
+      // CATEGORY MANAGER COMPONENT
+      // ========================================
+      const CategoryManager = (function() {
+        let containerElement = null;
+        let categoryListElement = null;
+        let categoryInputElement = null;
+        let addCategoryButton = null;
+        let errorMessageElement = null;
+        
+        /**
+         * Initializes the CategoryManager component.
+         * Requirements: 6.1 (default categories), 6.2 (validate category name),
+         * 6.3 (error message), 6.4 (add to selection list), 6.5 (persist), 6.6 (restore)
+         * @param {HTMLElement} container - The section element containing category management UI
+         */
+        function init(container) {
+          if (!container) {
+            console.error('CategoryManager: Container element is required');
+            return;
+          }
+          
+          containerElement = container;
+          
+          // Get references to UI elements
+          categoryListElement = container.querySelector('#current-categories');
+          categoryInputElement = container.querySelector('#new-category');
+          addCategoryButton = container.querySelector('#add-category-btn');
+          errorMessageElement = container.querySelector('.error-message');
+          
+          if (!categoryListElement || !categoryInputElement || !addCategoryButton || !errorMessageElement) {
+            console.error('CategoryManager: Required UI elements not found');
+            return;
+          }
+          
+          // Display current categories (Requirement: Display current categories list in UI)
+          displayCategories();
+          
+          // Add event listener for "Add Category" button click
+          addCategoryButton.addEventListener('click', handleAddCategory);
+          
+          // Clear error on input focus
+          categoryInputElement.addEventListener('focus', function() {
+            clearError();
+          });
+          
+          // Support Enter key to add category
+          categoryInputElement.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              handleAddCategory();
+            }
+          });
+          
+          // Add Escape key handler to clear errors (Task 13.2)
+          categoryInputElement.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+              clearError();
+              categoryInputElement.value = ''; // Also clear the input
+            }
+          });
+          
+          // Subscribe to category:added event from DataModel
+          DataModel.on('category:added', function(categoryName) {
+            // Display updated categories
+            displayCategories();
+            
+            // Refresh the form dropdown (Requirement: Update form select element options)
+            refresh();
+            
+            // Clear the input field
+            categoryInputElement.value = '';
+            
+            // Clear any error messages
+            clearError();
+          });
+          
+          console.log('CategoryManager component initialized');
+        }
+        
+        /**
+         * Handles adding a new category.
+         * Requirements: 6.2 (validate), 6.3 (error on fail), 6.4 (add to list)
+         */
+        function handleAddCategory() {
+          const categoryName = categoryInputElement.value;
+          const existingCategories = DataModel.getAllCategories();
+          
+          // Clear previous errors
+          clearError();
+          
+          // Call Validator.validateCategoryName() with existing categories for duplicate check
+          const validation = Validator.validateCategoryName(categoryName, existingCategories);
+          
+          // Display error message using showError(message) if validation fails
+          if (!validation.valid) {
+            showError(validation.error);
+            categoryInputElement.focus();
+            return;
+          }
+          
+          // On successful validation, call DataModel.addCategory(name)
+          const trimmedName = categoryName.trim();
+          const success = DataModel.addCategory(trimmedName);
+          
+          if (success) {
+            // Category added successfully
+            // Save to storage (Requirement 6.5: persist to storage)
+            DataModel.saveData();
+            
+            console.log('Category added:', trimmedName);
+          } else {
+            // This shouldn't happen if validation passed, but handle it anyway
+            showError('Failed to add category. Please try again.');
+          }
+        }
+        
+        /**
+         * Displays the current list of categories in the UI.
+         * Requirements: Display current categories list
+         */
+        function displayCategories() {
+          if (!categoryListElement) {
+            return;
+          }
+          
+          const categories = DataModel.getAllCategories();
+          
+          if (categories.length === 0) {
+            categoryListElement.textContent = 'No categories yet';
+          } else {
+            // Display as comma-separated list
+            categoryListElement.textContent = 'Current: ' + categories.join(', ');
+          }
+        }
+        
+        /**
+         * Refreshes the category dropdown in TransactionForm.
+         * Requirements: 6.4 (update form select element options when new category is added)
+         */
+        function refresh() {
+          // Call TransactionForm's refreshCategories method
+          if (typeof TransactionForm !== 'undefined' && typeof TransactionForm.refreshCategories === 'function') {
+            TransactionForm.refreshCategories();
+          }
+        }
+        
+        /**
+         * Displays an error message.
+         * Requirements: 6.3 (display error message on validation fail)
+         * @param {string} message - The error message to display
+         */
+        function showError(message) {
+          if (!errorMessageElement) {
+            return;
+          }
+          
+          errorMessageElement.textContent = message;
+          errorMessageElement.setAttribute('role', 'alert');
+          
+          // Add visual feedback to input
+          if (categoryInputElement) {
+            categoryInputElement.style.borderColor = 'var(--error-color)';
+            categoryInputElement.setAttribute('aria-invalid', 'true');
+          }
+        }
+        
+        /**
+         * Clears the error message.
+         */
+        function clearError() {
+          if (!errorMessageElement) {
+            return;
+          }
+          
+          errorMessageElement.textContent = '';
+          errorMessageElement.removeAttribute('role');
+          
+          // Remove visual feedback from input
+          if (categoryInputElement) {
+            categoryInputElement.style.borderColor = '';
+            categoryInputElement.removeAttribute('aria-invalid');
+          }
+        }
+        
+        // Public API
+        return {
+          init: init,
+          refresh: refresh,
+          showError: showError
+        };
+      })();
+      
+      
+      // ========================================
+      // MONTHLY SUMMARY COMPONENT
+      // ========================================
+      const MonthlySummary = (function() {
+        
+        let containerElement = null;
+        let monthSelectElement = null;
+        let summaryContentElement = null;
+        let currentYear = null;
+        let currentMonth = null;
+        
+        /**
+         * Initializes the MonthlySummary component.
+         * Requirements: 7.4 (accessible without reload), 7.5 (default to current month)
+         * @param {HTMLElement} container - The container element for the monthly summary
+         */
+        function init(container) {
+          if (!container) {
+            console.error('MonthlySummary init failed: container element is null');
+            return;
+          }
+          
+          containerElement = container;
+          monthSelectElement = container.querySelector('#month-select');
+          summaryContentElement = container.querySelector('#monthly-summary-content');
+          
+          if (!monthSelectElement || !summaryContentElement) {
+            console.error('MonthlySummary: Required UI elements not found');
+            return;
+          }
+          
+          // Populate month selector with available months (Requirements: 7.5 default to current month)
+          populateMonthSelector();
+          
+          // Default to current calendar month (Requirement 7.5)
+          const now = new Date();
+          currentYear = now.getFullYear();
+          currentMonth = now.getMonth(); // 0-11
+          
+          // Select current month in dropdown if it exists
+          const currentValue = `${currentYear}-${currentMonth}`;
+          if (Array.from(monthSelectElement.options).some(opt => opt.value === currentValue)) {
+            monthSelectElement.value = currentValue;
+          } else if (monthSelectElement.options.length > 0) {
+            // If current month not in list, select first available
+            const firstValue = monthSelectElement.options[0].value;
+            if (firstValue) {
+              const [year, month] = firstValue.split('-').map(Number);
+              currentYear = year;
+              currentMonth = month;
+              monthSelectElement.value = firstValue;
+            }
+          }
+          
+          // Add event listener for month selection change (Requirement 7.2)
+          monthSelectElement.addEventListener('change', handleMonthChange);
+          
+          // Subscribe to transaction events to refresh available months (Requirement: Subscribe to events)
+          DataModel.on('transaction:added', function() {
+            populateMonthSelector();
+            renderSummary();
+          });
+          
+          DataModel.on('transaction:deleted', function() {
+            populateMonthSelector();
+            renderSummary();
+          });
+          
+          console.log('MonthlySummary component initialized');
+          
+          // Initial render
+          renderSummary();
+        }
+        
+        /**
+         * Populates the month selector dropdown with all months that have transactions.
+         * Requirements: Populate month selector with all months that have transactions
+         */
+        function populateMonthSelector() {
+          if (!monthSelectElement) {
+            return;
+          }
+          
+          const transactions = DataModel.getAllTransactions();
+          const monthsSet = new Set();
+          
+          // Extract unique year-month combinations from transactions
+          transactions.forEach(t => {
+            const date = new Date(t.date);
+            const year = date.getFullYear();
+            const month = date.getMonth(); // 0-11
+            monthsSet.add(`${year}-${month}`);
+          });
+          
+          // Convert to array and sort (newest first)
+          const months = Array.from(monthsSet).sort((a, b) => {
+            const [yearA, monthA] = a.split('-').map(Number);
+            const [yearB, monthB] = b.split('-').map(Number);
+            if (yearA !== yearB) return yearB - yearA; // Newer year first
+            return monthB - monthA; // Newer month first
+          });
+          
+          // Store current selection
+          const currentSelection = monthSelectElement.value;
+          
+          // Clear and repopulate
+          monthSelectElement.innerHTML = '';
+          
+          if (months.length === 0) {
+            // Add current month as default option even if no transactions
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const option = document.createElement('option');
+            option.value = `${year}-${month}`;
+            option.textContent = formatMonthYear(year, month);
+            monthSelectElement.appendChild(option);
+          } else {
+            months.forEach(monthKey => {
+              const [year, month] = monthKey.split('-').map(Number);
+              const option = document.createElement('option');
+              option.value = monthKey;
+              option.textContent = formatMonthYear(year, month);
+              monthSelectElement.appendChild(option);
+            });
+          }
+          
+          // Restore selection if it still exists
+          if (currentSelection && Array.from(monthSelectElement.options).some(opt => opt.value === currentSelection)) {
+            monthSelectElement.value = currentSelection;
+          } else if (monthSelectElement.options.length > 0) {
+            // Otherwise select first option
+            monthSelectElement.selectedIndex = 0;
+          }
+        }
+        
+        /**
+         * Formats year and month as readable string.
+         * @param {number} year - Full year (e.g., 2024)
+         * @param {number} month - Month index (0-11)
+         * @returns {string} Formatted month and year (e.g., "January 2024")
+         */
+        function formatMonthYear(year, month) {
+          const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+          ];
+          return `${monthNames[month]} ${year}`;
+        }
+        
+        /**
+         * Handles month selection change event.
+         * Requirements: 7.2 (recalculate on month selection)
+         */
+        function handleMonthChange() {
+          if (!monthSelectElement || !monthSelectElement.value) {
+            return;
+          }
+          
+          const [year, month] = monthSelectElement.value.split('-').map(Number);
+          selectMonth(year, month);
+        }
+        
+        /**
+         * Selects a specific month and renders the summary.
+         * Requirements: 7.2 (recalculate on month selection)
+         * @param {number} year - Full year (e.g., 2024)
+         * @param {number} month - Month index (0-11)
+         */
+        function selectMonth(year, month) {
+          currentYear = year;
+          currentMonth = month;
+          renderSummary();
+        }
+        
+        /**
+         * Renders the monthly summary with category totals and visual bars.
+         * Requirements: 7.1 (sum per category), 7.3 (empty state), 7.6 (exclude zero/negative)
+         */
+        function renderSummary() {
+          if (!summaryContentElement) {
+            return;
+          }
+          
+          // Get transactions for selected month (Requirement: Call DataModel.getTransactionsByMonth)
+          const transactions = DataModel.getTransactionsByMonth(currentYear, currentMonth);
+          
+          // Calculate category totals, excluding zero/negative amounts (Requirement 7.6)
+          const categoryTotals = {};
+          let grandTotal = 0;
+          
+          transactions.forEach(t => {
+            // Exclude zero or negative amounts (Requirement 7.6)
+            if (t.amount > 0) {
+              const category = t.category || 'Uncategorized';
+              categoryTotals[category] = (categoryTotals[category] || 0) + t.amount;
+              grandTotal += t.amount;
+            }
+          });
+          
+          const categories = Object.keys(categoryTotals);
+          
+          // Check for empty state (Requirement 7.3)
+          if (categories.length === 0 || grandTotal === 0) {
+            showEmptyState();
+            return;
+          }
+          
+          // Sort categories by amount (highest first)
+          categories.sort((a, b) => categoryTotals[b] - categoryTotals[a]);
+          
+          // Build summary HTML with visual bars (Requirements: Display totals with bars)
+          let html = '<div class="summary-content">';
+          
+          categories.forEach(category => {
+            const amount = categoryTotals[category];
+            const percentage = (amount / grandTotal) * 100;
+            
+            html += `
+              <div class="summary-category-row">
+                <div class="summary-category-header">
+                  <span class="summary-category-name">${escapeHtml(category)}</span>
+                  <span class="summary-category-amount">$${formatCurrency(amount)}</span>
+                </div>
+                <div class="summary-category-bar">
+                  <div class="summary-category-bar-fill" style="width: ${percentage}%"></div>
+                </div>
+              </div>
+            `;
+          });
+          
+          // Add grand total row (Requirement: Display grand total)
+          html += `
+            <div class="summary-total-row">
+              <span class="summary-total-label">Total</span>
+              <span class="summary-total-amount">$${formatCurrency(grandTotal)}</span>
+            </div>
+          `;
+          
+          html += '</div>';
+          
+          summaryContentElement.innerHTML = html;
+        }
+        
+        /**
+         * Shows empty state message when no data exists.
+         * Requirements: 7.3 (empty state message)
+         */
+        function showEmptyState() {
+          if (!summaryContentElement) {
+            return;
+          }
+          
+          summaryContentElement.innerHTML = `
+            <div class="summary-empty-state">
+              <span class="empty-icon">📊</span>
+              <p>No expenses recorded for this month</p>
+            </div>
+          `;
+        }
+        
+        /**
+         * Shows the monthly summary section.
+         * Requirements: Implement show() function
+         */
+        function show() {
+          if (containerElement) {
+            containerElement.style.display = 'block';
+          }
+        }
+        
+        /**
+         * Hides the monthly summary section.
+         * Requirements: Implement hide() function
+         */
+        function hide() {
+          if (containerElement) {
+            containerElement.style.display = 'none';
+          }
+        }
+        
+        /**
+         * Formats a number as currency with 2 decimal places and thousands separators.
+         * @param {number} amount - The amount to format
+         * @returns {string} Formatted currency string
+         */
+        function formatCurrency(amount) {
+          return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+        
+        /**
+         * Escapes HTML special characters to prevent XSS.
+         * @param {string} text - The text to escape
+         * @returns {string} Escaped text
+         */
+        function escapeHtml(text) {
+          const div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
+        }
+        
+        // Public API
+        return {
+          init: init,
+          selectMonth: selectMonth,
+          show: show,
+          hide: hide
+        };
+      })();
+      
+      
+      // ========================================
+      // THEME TOGGLE COMPONENT
+      // ========================================
+      const ThemeToggle = (function() {
+        const STORAGE_KEY = 'ebv_theme_v1';
+        const DEFAULT_THEME = 'light'; // Requirement 8.4
+        let currentTheme = DEFAULT_THEME;
+        let buttonElement = null;
+        let sunIcon = null;
+        let moonIcon = null;
+        
+        /**
+         * Initializes the ThemeToggle component.
+         * Requirements: 8.3 (restore from storage), 8.4 (default to light)
+         * @param {HTMLElement} button - The theme toggle button element
+         */
+        function init(button) {
+          if (!button) {
+            console.error('ThemeToggle init failed: button element is null');
+            return;
+          }
+          
+          buttonElement = button;
+          sunIcon = button.querySelector('.icon-sun');
+          moonIcon = button.querySelector('.icon-moon');
+          
+          if (!sunIcon || !moonIcon) {
+            console.warn('ThemeToggle: Icon elements not found in button');
+          }
+          
+          // Load saved theme preference from storage (Requirement 8.3)
+          const savedTheme = StorageManager.load(STORAGE_KEY);
+          if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+            currentTheme = savedTheme;
+          } else {
+            // Default to light theme if no preference exists (Requirement 8.4)
+            currentTheme = DEFAULT_THEME;
+          }
+          
+          // Apply saved theme before first render to prevent flash (Requirement: Apply before first render)
+          setTheme(currentTheme);
+          
+          // Attach event listener for theme toggle
+          buttonElement.addEventListener('click', toggleTheme);
+          
+          // Add Enter and Space key support for theme toggle (Task 13.2)
+          buttonElement.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              toggleTheme();
+            }
+          });
+          
+          console.log('ThemeToggle component initialized with theme:', currentTheme);
+        }
+        
+        /**
+         * Sets the theme by updating the data-theme attribute on the HTML element.
+         * Requirements: 8.1 (switch between themes), 8.2 (apply within 300ms)
+         * @param {string} theme - The theme to apply ('light' or 'dark')
+         */
+        function setTheme(theme) {
+          if (theme !== 'light' && theme !== 'dark') {
+            console.error('Invalid theme:', theme);
+            return;
+          }
+          
+          // Set data-theme attribute on <html> element (Requirement: Set data-theme attribute)
+          document.documentElement.setAttribute('data-theme', theme);
+          
+          currentTheme = theme;
+          
+          // Update sun/moon icon visibility based on current theme
+          updateIconVisibility(theme);
+          
+          // Note: CSS transition handles the 300ms requirement (Requirement 8.2)
+          // via --transition-speed: 300ms CSS custom property
+        }
+        
+        /**
+         * Toggles between light and dark themes.
+         * Requirements: 8.1 (switch between themes), 8.5 (persist to storage)
+         */
+        function toggleTheme() {
+          // Toggle between light and dark (Requirement: Toggle between "light" and "dark")
+          const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+          
+          // Apply the new theme
+          setTheme(newTheme);
+          
+          // Save theme preference to Local Storage (Requirement 8.5)
+          const saved = StorageManager.save(STORAGE_KEY, newTheme);
+          
+          if (!saved) {
+            console.warn('Failed to save theme preference to storage');
+          }
+        }
+        
+        /**
+         * Updates the visibility of sun/moon icons based on the current theme.
+         * Requirements: Update sun/moon icon visibility
+         * @param {string} theme - The current theme ('light' or 'dark')
+         */
+        function updateIconVisibility(theme) {
+          if (!sunIcon || !moonIcon) {
+            return;
+          }
+          
+          // In light mode: show moon icon (to switch to dark)
+          // In dark mode: show sun icon (to switch to light)
+          // Note: CSS handles this via [data-theme="dark"] selectors
+          // This function is kept for explicit programmatic control if needed
+          
+          // The CSS already handles icon visibility:
+          // .icon-moon { display: none; }
+          // [data-theme="dark"] .icon-sun { display: none; }
+          // [data-theme="dark"] .icon-moon { display: inline; }
+          
+          // No explicit style changes needed here as CSS handles it automatically
+          // based on the data-theme attribute we set in setTheme()
+        }
+        
+        /**
+         * Gets the current theme.
+         * @returns {string} The current theme ('light' or 'dark')
+         */
+        function getTheme() {
+          return currentTheme;
+        }
+        
+        // Public API
+        return {
+          init: init,
+          setTheme: setTheme,
+          toggleTheme: toggleTheme,
+          getTheme: getTheme
+        };
+      })();
+      
+      
+      // ========================================
+      // APP CONTROLLER MODULE
+      // ========================================
+      const AppController = (function() {
+        
+        /**
+         * Initializes the application.
+         * Requirements:
+         * - 5.3: Load data from Local Storage within 500ms
+         * - 9.1: Render initial page within 2 seconds
+         * - 9.2: Update UI within 300ms after actions
+         * - 12.1: Initialize storage error handling
+         * Task 14.2: Add loading indicator during initial data load if >500ms
+         * Task 14.2: Implement timeout for initial load (10 seconds) with error message
+         * Task 14.2: Add performance monitoring for initial load (2s budget)
+         * 
+         * This function orchestrates application startup by:
+         * 1. Initializing notification system
+         * 2. Checking storage availability and showing banner if unavailable
+         * 3. Loading saved data from Local Storage
+         * 4. Initializing all UI components with their DOM element references
+         * 5. Setting up event listeners by subscribing to DataModel events
+         * 6. Performing initial render of all components
+         */
+        function init() {
+          // Task 14.2: Start performance measurement for initial load
+          PerformanceMonitor.start('initialLoad');
+          
+          // Task 14.2: Set up loading indicator timer (show after 500ms)
+          let loadingTimeout = setTimeout(function() {
+            showLoadingIndicator();
+          }, 500);
+          
+          // Task 14.2: Set up init timeout (10 seconds max)
+          let initTimeout = setTimeout(function() {
+            hideLoadingIndicator();
+            showInitError();
+            PerformanceMonitor.end('initialLoad', 'initialLoad');
+          }, 10000);
+          
+          try {
+            // Initialize NotificationManager (Requirement 12.1)
+            NotificationManager.init();
+            
+            // Check storage availability and show banner if unavailable (Requirement 12.1)
+            if (!StorageManager.isAvailable()) {
+              NotificationManager.showStorageUnavailableBanner();
+            }
+            
+            // Set up storage error listeners (Requirement 12.1)
+            StorageManager.on('quota-exceeded', function(data) {
+              NotificationManager.showStorageFullError();
+            });
+            
+            StorageManager.on('unavailable', function(data) {
+              NotificationManager.showToast(
+                'Storage operation failed',
+                'error',
+                'Local Storage is not available. Data cannot be saved.',
+                0
+              );
+            });
+            
+            // Listen for save failures from DataModel (Requirement 12.1)
+            DataModel.on('save:failed', function(data) {
+              console.error('DataModel save failed:', data);
+              // Don't show toast here as StorageManager already emitted the specific error
+            });
+            
+            // Initialize ThemeToggle FIRST to apply saved theme before rendering
+            // Requirements: 8.3 (restore from storage before first render)
+            const themeToggleButton = document.getElementById('theme-toggle');
+            if (themeToggleButton) {
+              ThemeToggle.init(themeToggleButton);
+            }
+            
+            // Task 14.2: Measure data load time separately
+            PerformanceMonitor.start('dataLoad');
+            
+            // Load data from storage (Requirement 5.3: within 500ms)
+            DataModel.loadData();
+            
+            // Task 14.2: End data load measurement
+            PerformanceMonitor.end('dataLoad', 'dataLoad');
+            
+            // Initialize all UI components with their DOM element references
+            const formElement = document.getElementById('transaction-form');
+            if (formElement) {
+              TransactionForm.init(formElement);
+            }
+            
+            const balanceContainer = document.getElementById('balance-display');
+            if (balanceContainer) {
+              BalanceDisplay.init(balanceContainer);
+            }
+            
+            const listContainer = document.getElementById('transaction-list');
+            if (listContainer) {
+              TransactionList.init(listContainer);
+            }
+            
+            const chartCanvas = document.getElementById('pie-chart');
+            if (chartCanvas) {
+              PieChart.init(chartCanvas);
+            }
+            
+            const categorySection = document.getElementById('category-section');
+            if (categorySection) {
+              CategoryManager.init(categorySection);
+            }
+            
+            const summarySection = document.getElementById('summary-section');
+            if (summarySection) {
+              MonthlySummary.init(summarySection);
+            }
+            
+            // Set up event listeners by subscribing to DataModel events
+            DataModel.on('transaction:added', handleTransactionAdded);
+            DataModel.on('transaction:deleted', handleTransactionDeleted);
+            DataModel.on('category:added', handleCategoryAdded);
+            
+            // Listen for data corruption events (Requirement 12.3)
+            DataModel.on('data:corrupted', handleDataCorruption);
+            
+            // Initial render of all UI components (Requirement 9.1: within 2 seconds)
+            renderAll();
+            
+            // Task 14.2: Clear timers and hide loading indicator
+            clearTimeout(loadingTimeout);
+            clearTimeout(initTimeout);
+            hideLoadingIndicator();
+            
+            // Task 14.2: End performance measurement
+            PerformanceMonitor.end('initialLoad', 'initialLoad');
+            
+            console.log('[AppController] Initialization complete');
+          } catch (error) {
+            // Task 14.2: Handle initialization errors
+            console.error('[AppController] Initialization failed:', error);
+            clearTimeout(loadingTimeout);
+            clearTimeout(initTimeout);
+            hideLoadingIndicator();
+            showInitError();
+            PerformanceMonitor.end('initialLoad', 'initialLoad');
+          }
+        }
+        
+        /**
+         * Shows loading indicator during initial data load.
+         * Task 14.2: Display loading indicator if initial load takes >500ms
+         */
+        function showLoadingIndicator() {
+          const appMain = document.querySelector('.app-main');
+          if (!appMain) return;
+          
+          // Create loading overlay
+          let loadingOverlay = document.getElementById('loading-overlay');
+          
+          if (!loadingOverlay) {
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loading-overlay';
+            loadingOverlay.style.cssText = `
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: var(--bg-primary);
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              z-index: 9999;
+              opacity: 0.95;
+            `;
+            
+            loadingOverlay.innerHTML = `
+              <div style="font-size: 3rem; margin-bottom: 1rem; animation: pulse 1.5s ease-in-out infinite;">⏳</div>
+              <div style="font-size: 1.25rem; color: var(--text-primary); font-weight: 500;">Loading your data...</div>
+            `;
+            
+            // Add pulse animation
+            const style = document.createElement('style');
+            style.textContent = `
+              @keyframes pulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.5; transform: scale(1.1); }
+              }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(loadingOverlay);
+          }
+          
+          loadingOverlay.style.display = 'flex';
+          console.log('[AppController] Loading indicator shown');
+        }
+        
+        /**
+         * Hides loading indicator.
+         * Task 14.2: Hide loading indicator when initialization completes
+         */
+        function hideLoadingIndicator() {
+          const loadingOverlay = document.getElementById('loading-overlay');
+          if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+            console.log('[AppController] Loading indicator hidden');
+          }
+        }
+        
+        /**
+         * Shows initialization error message.
+         * Task 14.2: Show error message if initialization exceeds 10 second timeout
+         * Requirements: 9.3 (display loading indicator on failure)
+         */
+        function showInitError() {
+          console.error('[AppController] Initialization timeout or error');
+          
+          // Show error notification
+          if (typeof NotificationManager !== 'undefined' && NotificationManager.showToast) {
+            NotificationManager.showToast(
+              'Application Loading Failed',
+              'error',
+              'The application failed to load within 10 seconds. Please refresh the page.',
+              0  // Persistent
+            );
+          }
+          
+          // Show error message in main area
+          const appMain = document.querySelector('.app-main');
+          if (appMain) {
+            appMain.innerHTML = `
+              <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">⚠️</span>
+                <h2 style="color: var(--error-color); margin-bottom: 1rem;">Loading Failed</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                  The application failed to load properly. This may be due to a slow connection or technical issue.
+                </p>
+                <button class="btn-primary" onclick="location.reload()">Refresh Page</button>
+              </div>
+            `;
+          }
+        }
+        
+        /**
+         * Handles transaction:added event.
+         * Saves data to storage and triggers re-render of all UI components.
+         * Requirement 9.2: Update UI within 300ms
+         * Requirement 12.1: Handle storage save failures
+         * 
+         * @param {Object} transaction - The newly added transaction
+         */
+        function handleTransactionAdded(transaction) {
+          // Save data to Local Storage
+          const saved = DataModel.saveData();
+          
+          if (!saved) {
+            console.error('Failed to save transaction to storage');
+            // Show error notification (StorageManager already emitted the error)
+            // Form input is preserved (NOT cleared) - handled in TransactionForm
+          }
+          
+          // Trigger re-render of all UI components
+          renderAll();
+        }
+        
+        /**
+         * Handles transaction:deleted event.
+         * Saves data to storage and triggers re-render of all UI components.
+         * Requirement 9.2: Update UI within 300ms
+         * Requirement 12.1: Handle storage save failures
+         * 
+         * @param {Object} transaction - The deleted transaction
+         */
+        function handleTransactionDeleted(transaction) {
+          // Save data to Local Storage
+          const saved = DataModel.saveData();
+          
+          if (!saved) {
+            console.error('Failed to save after deletion to storage');
+            // Show error notification (StorageManager already emitted the error)
+          }
+          
+          // Trigger re-render of all UI components
+          renderAll();
+        }
+        
+        /**
+         * Handles category:added event.
+         * Saves data to storage and refreshes the form dropdown.
+         * Requirement 6.4: Add category to selection list within 500ms
+         * Requirement 12.1: Handle storage save failures
+         * 
+         * @param {string} category - The newly added category name
+         */
+        function handleCategoryAdded(category) {
+          // Save data to Local Storage
+          const saved = DataModel.saveData();
+          
+          if (!saved) {
+            console.error('Failed to save category to storage');
+            // Show error notification (StorageManager already emitted the error)
+          }
+          
+          // Refresh form dropdown to include the new category
+          if (typeof TransactionForm !== 'undefined' && TransactionForm.refreshCategories) {
+            TransactionForm.refreshCategories();
+          }
+        }
+        
+        /**
+         * Handles data:corrupted event from DataModel.
+         * Displays error message to user when saved data cannot be restored.
+         * Requirement 12.3: Display error message to user when saved data cannot be restored
+         * 
+         * @param {Object} data - Corruption event data containing dataType and error
+         */
+        function handleDataCorruption(data) {
+          console.error('Data corruption detected:', data);
+          
+          // Construct user-friendly error message
+          let message = '';
+          if (data.dataType === 'transactions') {
+            message = 'Saved transaction data could not be restored due to corruption. Starting with empty transaction list.';
+          } else if (data.dataType === 'categories') {
+            message = 'Saved category data could not be restored due to corruption. Using default categories (Food, Transport, Fun).';
+          } else {
+            message = 'Saved data could not be restored due to corruption. Some data may have been reset to defaults.';
+          }
+          
+          // Show persistent error notification to user (Requirement 12.3)
+          if (typeof NotificationManager !== 'undefined' && NotificationManager.showToast) {
+            NotificationManager.showToast(
+              'Data Restoration Error',
+              'error',
+              message,
+              0  // 0 = persistent (requires manual dismissal)
+            );
+          } else {
+            // Fallback: log to console if NotificationManager not available
+            console.error('Cannot show UI notification:', message);
+          }
+        }
+        
+        /**
+         * Updates all UI components to reflect current data state.
+         * This function is called after any data change to ensure UI consistency.
+         * Requirement 9.2: Complete update within 300ms
+         * Task 14.2: Add performance monitoring (300ms budget for UI update)
+         * 
+         * Components updated:
+         * - TransactionList: Display all transactions
+         * - BalanceDisplay: Show total spending
+         * - PieChart: Visualize category distribution
+         * - MonthlySummary: Show monthly breakdown
+         */
+        function renderAll() {
+          // Task 14.2: Start performance measurement for UI update
+          PerformanceMonitor.start('uiUpdate');
+          
+          // Update transaction list
+          if (typeof TransactionList !== 'undefined') {
+            TransactionList.render(DataModel.getAllTransactions());
+          }
+          
+          // Update balance display
+          if (typeof BalanceDisplay !== 'undefined') {
+            BalanceDisplay.update(DataModel.getTotalBalance());
+          }
+          
+          // Update pie chart
+          if (typeof PieChart !== 'undefined') {
+            PieChart.update(DataModel.getCategoryTotals());
+          }
+          
+          // Update monthly summary
+          if (typeof MonthlySummary !== 'undefined' && MonthlySummary.refresh) {
+            MonthlySummary.refresh();
+          }
+          
+          // Task 14.2: End performance measurement
+          PerformanceMonitor.end('uiUpdate', 'uiUpdate');
+        }
+        
+        // Public API
+        return {
+          init: init
+        };
+      })();
+      
+      
+      // ========================================
+      // INITIALIZATION
+      // ========================================
+      // Add DOMContentLoaded event listener to call AppController.init() when document is ready
+      // This ensures all DOM elements are available before initialization
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', AppController.init);
+      } else {
+        // Document is already loaded, initialize immediately
+        AppController.init();
+      }
+      
+    })();
+  </script>
+</body>
+</html>

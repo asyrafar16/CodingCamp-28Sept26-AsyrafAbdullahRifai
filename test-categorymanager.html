@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CategoryManager Component Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .test-title {
+      font-weight: 600;
+      color: #4CAF50;
+      margin-bottom: 10px;
+    }
+    
+    .test-result {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    
+    .pass {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border-left: 4px solid #4CAF50;
+    }
+    
+    .fail {
+      background-color: #ffebee;
+      color: #c62828;
+      border-left: 4px solid #f44336;
+    }
+    
+    .card {
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    .category-list {
+      margin-bottom: 15px;
+      padding: 10px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      min-height: 40px;
+      color: #333;
+      font-size: 0.875rem;
+    }
+    
+    .category-input-group {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .category-input-group input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .category-input-group input:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+    
+    .btn-secondary {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #f5f5f5;
+      color: #333;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #ddd;
+    }
+    
+    .error-message {
+      display: block;
+      margin-top: 8px;
+      color: #f44336;
+      font-size: 0.875rem;
+      min-height: 1.25rem;
+    }
+    
+    #category-dropdown {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>CategoryManager Component Test Suite</h1>
+  
+  <div class="test-section">
+    <div class="test-title">Test Environment</div>
+    <div id="test-results"></div>
+  </div>
+  
+  <!-- Category Manager UI -->
+  <section id="category-section" class="card">
+    <h2>Manage Categories</h2>
+    <div id="current-categories" class="category-list"></div>
+    <div class="category-input-group">
+      <input type="text" id="new-category" placeholder="New category name" maxlength="50">
+      <button id="add-category-btn" class="btn-secondary">Add</button>
+    </div>
+    <span class="error-message"></span>
+  </section>
+  
+  <!-- Test: Form dropdown updates -->
+  <div class="card">
+    <h2>Category Dropdown (should auto-update)</h2>
+    <select id="category-dropdown">
+      <option value="">Select category...</option>
+    </select>
+  </div>
+  
+  <script>
+    // ========================================
+    // MOCK STORAGE MANAGER
+    // ========================================
+    const StorageManager = (function() {
+      let storage = {};
+      
+      function save(key, data) {
+        storage[key] = JSON.stringify({ version: "1.0", data: data });
+        return true;
+      }
+      
+      function load(key) {
+        if (storage[key]) {
+          const parsed = JSON.parse(storage[key]);
+          return parsed.data;
+        }
+        return null;
+      }
+      
+      function isAvailable() {
+        return true;
+      }
+      
+      return { save, load, isAvailable };
+    })();
+    
+    
+    // ========================================
+    // VALIDATOR MODULE (from main app)
+    // ========================================
+    const Validator = (function() {
+      function validateCategoryName(name, existingCategories) {
+        const trimmed = name.trim();
+        
+        if (trimmed.length === 0 || /^\s+$/.test(name)) {
+          return { valid: false, error: 'Category name cannot be empty or only whitespace' };
+        }
+        
+        if (trimmed.length > 50) {
+          return { valid: false, error: 'Category name cannot exceed 50 characters' };
+        }
+        
+        const lowerName = trimmed.toLowerCase();
+        if (existingCategories.some(cat => cat.toLowerCase() === lowerName)) {
+          return { valid: false, error: 'Category already exists' };
+        }
+        
+        return { valid: true, error: '' };
+      }
+      
+      return { validateCategoryName };
+    })();
+    
+    
+    // ========================================
+    // DATA MODEL MODULE (simplified)
+    // ========================================
+    const DataModel = (function() {
+      let categories = ['Food', 'Transport', 'Fun'];
+      const listeners = {};
+      
+      function emit(eventName, data) {
+        if (listeners[eventName]) {
+          listeners[eventName].forEach(callback => callback(data));
+        }
+      }
+      
+      function on(eventName, callback) {
+        if (!listeners[eventName]) {
+          listeners[eventName] = [];
+        }
+        listeners[eventName].push(callback);
+      }
+      
+      function addCategory(name) {
+        const trimmed = name.trim();
+        if (!categories.includes(trimmed)) {
+          categories.push(trimmed);
+          emit('category:added', trimmed);
+          return true;
+        }
+        return false;
+      }
+      
+      function getAllCategories() {
+        return [...categories];
+      }
+      
+      function saveData() {
+        StorageManager.save('ebv_categories_v1', categories);
+        return true;
+      }
+      
+      function loadData() {
+        const loaded = StorageManager.load('ebv_categories_v1');
+        if (loaded) {
+          categories = loaded;
+        }
+        emit('data:loaded');
+      }
+      
+      return {
+        addCategory,
+        getAllCategories,
+        on,
+        saveData,
+        loadData
+      };
+    })();
+    
+    
+    // ========================================
+    // MOCK TRANSACTION FORM (for testing refresh)
+    // ========================================
+    const TransactionForm = (function() {
+      function refreshCategories() {
+        const categories = DataModel.getAllCategories();
+        const select = document.getElementById('category-dropdown');
+        
+        select.innerHTML = '<option value="">Select category...</option>';
+        
+        categories.forEach(category => {
+          const option = document.createElement('option');
+          option.value = category;
+          option.textContent = category;
+          select.appendChild(option);
+        });
+        
+        console.log('TransactionForm dropdown refreshed with', categories.length, 'categories');
+      }
+      
+      // Initialize dropdown with default categories
+      setTimeout(refreshCategories, 100);
+      
+      return { refreshCategories };
+    })();
+    
+    
+    // ========================================
+    // CATEGORY MANAGER COMPONENT (from main app)
+    // ========================================
+    const CategoryManager = (function() {
+      let containerElement = null;
+      let categoryListElement = null;
+      let categoryInputElement = null;
+      let addCategoryButton = null;
+      let errorMessageElement = null;
+      
+      function init(container) {
+        if (!container) {
+          console.error('CategoryManager: Container element is required');
+          return;
+        }
+        
+        containerElement = container;
+        
+        categoryListElement = container.querySelector('#current-categories');
+        categoryInputElement = container.querySelector('#new-category');
+        addCategoryButton = container.querySelector('#add-category-btn');
+        errorMessageElement = container.querySelector('.error-message');
+        
+        if (!categoryListElement || !categoryInputElement || !addCategoryButton || !errorMessageElement) {
+          console.error('CategoryManager: Required UI elements not found');
+          return;
+        }
+        
+        displayCategories();
+        
+        addCategoryButton.addEventListener('click', handleAddCategory);
+        
+        categoryInputElement.addEventListener('focus', function() {
+          clearError();
+        });
+        
+        categoryInputElement.addEventListener('keypress', function(event) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            handleAddCategory();
+          }
+        });
+        
+        DataModel.on('category:added', function(categoryName) {
+          displayCategories();
+          refresh();
+          categoryInputElement.value = '';
+          clearError();
+        });
+        
+        console.log('CategoryManager component initialized');
+      }
+      
+      function handleAddCategory() {
+        const categoryName = categoryInputElement.value;
+        const existingCategories = DataModel.getAllCategories();
+        
+        clearError();
+        
+        const validation = Validator.validateCategoryName(categoryName, existingCategories);
+        
+        if (!validation.valid) {
+          showError(validation.error);
+          categoryInputElement.focus();
+          return;
+        }
+        
+        const trimmedName = categoryName.trim();
+        const success = DataModel.addCategory(trimmedName);
+        
+        if (success) {
+          DataModel.saveData();
+          console.log('Category added:', trimmedName);
+        } else {
+          showError('Failed to add category. Please try again.');
+        }
+      }
+      
+      function displayCategories() {
+        if (!categoryListElement) {
+          return;
+        }
+        
+        const categories = DataModel.getAllCategories();
+        
+        if (categories.length === 0) {
+          categoryListElement.textContent = 'No categories yet';
+        } else {
+          categoryListElement.textContent = 'Current: ' + categories.join(', ');
+        }
+      }
+      
+      function refresh() {
+        if (typeof TransactionForm !== 'undefined' && typeof TransactionForm.refreshCategories === 'function') {
+          TransactionForm.refreshCategories();
+        }
+      }
+      
+      function showError(message) {
+        if (!errorMessageElement) {
+          return;
+        }
+        
+        errorMessageElement.textContent = message;
+        errorMessageElement.setAttribute('role', 'alert');
+        
+        if (categoryInputElement) {
+          categoryInputElement.style.borderColor = '#f44336';
+          categoryInputElement.setAttribute('aria-invalid', 'true');
+        }
+      }
+      
+      function clearError() {
+        if (!errorMessageElement) {
+          return;
+        }
+        
+        errorMessageElement.textContent = '';
+        errorMessageElement.removeAttribute('role');
+        
+        if (categoryInputElement) {
+          categoryInputElement.style.borderColor = '';
+          categoryInputElement.removeAttribute('aria-invalid');
+        }
+      }
+      
+      return {
+        init,
+        refresh,
+        showError
+      };
+    })();
+    
+    
+    // ========================================
+    // TEST RUNNER
+    // ========================================
+    const results = [];
+    
+    function test(description, testFn) {
+      try {
+        testFn();
+        results.push({ description, passed: true });
+        console.log('✓', description);
+      } catch (error) {
+        results.push({ description, passed: false, error: error.message });
+        console.error('✗', description, error.message);
+      }
+    }
+    
+    function assert(condition, message) {
+      if (!condition) {
+        throw new Error(message || 'Assertion failed');
+      }
+    }
+    
+    function runTests() {
+      console.log('=== Running CategoryManager Tests ===');
+      
+      // Test 1: Initialization
+      test('CategoryManager initializes without errors', () => {
+        const section = document.getElementById('category-section');
+        CategoryManager.init(section);
+        assert(true, 'Init completed');
+      });
+      
+      // Test 2: Default categories display
+      test('Displays default categories (Food, Transport, Fun)', () => {
+        const categoryList = document.getElementById('current-categories');
+        const text = categoryList.textContent;
+        assert(text.includes('Food'), 'Should include Food');
+        assert(text.includes('Transport'), 'Should include Transport');
+        assert(text.includes('Fun'), 'Should include Fun');
+      });
+      
+      // Test 3: Add valid category
+      test('Adds a valid new category', () => {
+        const input = document.getElementById('new-category');
+        const button = document.getElementById('add-category-btn');
+        
+        input.value = 'Shopping';
+        button.click();
+        
+        const categories = DataModel.getAllCategories();
+        assert(categories.includes('Shopping'), 'Shopping should be in categories');
+      });
+      
+      // Test 4: Dropdown updates
+      test('Updates form dropdown when category is added', () => {
+        const dropdown = document.getElementById('category-dropdown');
+        const options = Array.from(dropdown.options).map(opt => opt.value);
+        assert(options.includes('Shopping'), 'Dropdown should include Shopping');
+      });
+      
+      // Test 5: Reject empty category
+      test('Rejects empty category name', () => {
+        const input = document.getElementById('new-category');
+        const button = document.getElementById('add-category-btn');
+        const errorMsg = document.querySelector('.error-message');
+        
+        input.value = '';
+        button.click();
+        
+        assert(errorMsg.textContent.length > 0, 'Should display error message');
+        assert(errorMsg.textContent.includes('empty'), 'Error should mention empty');
+      });
+      
+      // Test 6: Reject duplicate category
+      test('Rejects duplicate category (case-insensitive)', () => {
+        const input = document.getElementById('new-category');
+        const button = document.getElementById('add-category-btn');
+        const errorMsg = document.querySelector('.error-message');
+        
+        // Clear previous error
+        input.focus();
+        
+        input.value = 'food'; // lowercase
+        button.click();
+        
+        assert(errorMsg.textContent.length > 0, 'Should display error message');
+        assert(errorMsg.textContent.toLowerCase().includes('exists'), 'Error should mention exists');
+      });
+      
+      // Test 7: Reject whitespace-only
+      test('Rejects whitespace-only category name', () => {
+        const input = document.getElementById('new-category');
+        const button = document.getElementById('add-category-btn');
+        const errorMsg = document.querySelector('.error-message');
+        
+        input.focus(); // Clear error
+        
+        input.value = '   ';
+        button.click();
+        
+        assert(errorMsg.textContent.length > 0, 'Should display error message');
+      });
+      
+      // Test 8: Reject too long category
+      test('Rejects category name exceeding 50 characters', () => {
+        const input = document.getElementById('new-category');
+        const button = document.getElementById('add-category-btn');
+        const errorMsg = document.querySelector('.error-message');
+        
+        input.focus(); // Clear error
+        
+        input.value = 'a'.repeat(51);
+        button.click();
+        
+        assert(errorMsg.textContent.length > 0, 'Should display error message');
+        assert(errorMsg.textContent.includes('50'), 'Error should mention 50 characters');
+      });
+      
+      // Test 9: Clear error on focus
+      test('Clears error message when input is focused', () => {
+        const input = document.getElementById('new-category');
+        const errorMsg = document.querySelector('.error-message');
+        
+        // Ensure there's an error first
+        input.value = '';
+        document.getElementById('add-category-btn').click();
+        
+        // Focus should clear error
+        input.focus();
+        
+        assert(errorMsg.textContent === '', 'Error message should be cleared');
+      });
+      
+      // Test 10: Persistence
+      test('Categories are saved to storage', () => {
+        const saved = StorageManager.load('ebv_categories_v1');
+        assert(saved !== null, 'Categories should be saved');
+        assert(Array.isArray(saved), 'Saved data should be an array');
+        assert(saved.includes('Shopping'), 'Saved data should include Shopping');
+      });
+      
+      // Display results
+      const resultsDiv = document.getElementById('test-results');
+      const passed = results.filter(r => r.passed).length;
+      const total = results.length;
+      
+      resultsDiv.innerHTML = `
+        <div class="test-result ${passed === total ? 'pass' : 'fail'}">
+          <strong>Tests: ${passed}/${total} passed</strong>
+        </div>
+      `;
+      
+      results.forEach(result => {
+        const div = document.createElement('div');
+        div.className = `test-result ${result.passed ? 'pass' : 'fail'}`;
+        div.textContent = `${result.passed ? '✓' : '✗'} ${result.description}`;
+        if (result.error) {
+          const error = document.createElement('div');
+          error.style.fontSize = '0.875rem';
+          error.style.marginTop = '5px';
+          error.textContent = result.error;
+          div.appendChild(error);
+        }
+        resultsDiv.appendChild(div);
+      });
+      
+      console.log('=== Test Results ===');
+      console.log(`Passed: ${passed}/${total}`);
+    }
+    
+    // Initialize and run tests when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      runTests();
+    });
+  </script>
+</body>
+</html>

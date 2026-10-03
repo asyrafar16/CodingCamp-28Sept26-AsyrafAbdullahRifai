@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TransactionForm Component Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: #f5f5f5;
+    }
+    .test-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: white;
+    }
+    .test-result {
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      border-radius: 4px;
+    }
+    .pass {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .fail {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      margin-top: 0;
+      color: #555;
+    }
+    h3 {
+      color: #666;
+      font-size: 1.1rem;
+    }
+    .form-container {
+      background-color: #f9f9f9;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .form-group.error input,
+    .form-group.error select {
+      border-color: #f44336;
+    }
+    .error-message {
+      display: block;
+      margin-top: 0.25rem;
+      color: #f44336;
+      font-size: 0.875rem;
+      min-height: 1.25rem;
+    }
+    .error-message:empty {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>TransactionForm Component Test Suite</h1>
+  
+  <div class="test-section">
+    <h2>Test Controls</h2>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test Form</h2>
+    <div class="form-container">
+      <form id="transaction-form">
+        <div class="form-group">
+          <label for="item-name">Item Name</label>
+          <input type="text" id="item-name" name="name" maxlength="100" required>
+          <span class="error-message"></span>
+        </div>
+        
+        <div class="form-group">
+          <label for="amount">Amount</label>
+          <input type="number" id="amount" name="amount" 
+                 min="0.01" max="999999999.99" step="0.01" required>
+          <span class="error-message"></span>
+        </div>
+        
+        <div class="form-group">
+          <label for="category">Category</label>
+          <select id="category" name="category" required>
+            <option value="">Select category...</option>
+          </select>
+          <span class="error-message"></span>
+        </div>
+        
+        <button type="submit" class="btn-primary">Add Transaction</button>
+      </form>
+    </div>
+  </div>
+  
+  <div id="test-results"></div>
+  
+  <script>
+    // ========================================
+    // STORAGE MANAGER MODULE (Minimal Mock for Testing)
+    // ========================================
+    const StorageManager = (function() {
+      const storage = {};
+      
+      function save(key, data) {
+        storage[key] = JSON.stringify({ version: "1.0", data: data });
+        return true;
+      }
+      
+      function load(key) {
+        if (!storage[key]) return null;
+        try {
+          const parsed = JSON.parse(storage[key]);
+          return parsed.data;
+        } catch (e) {
+          return null;
+        }
+      }
+      
+      function isAvailable() {
+        return true;
+      }
+      
+      return { save, load, isAvailable };
+    })();
+    
+    
+    // ========================================
+    // VALIDATOR MODULE
+    // ========================================
+    const Validator = (function() {
+      function validateTransactionName(name) {
+        const trimmed = name.trim();
+        if (trimmed.length === 0) {
+          return { valid: false, error: 'Item name cannot be empty' };
+        }
+        if (trimmed.length > 100) {
+          return { valid: false, error: 'Item name cannot exceed 100 characters' };
+        }
+        return { valid: true, error: '' };
+      }
+      
+      function validateAmount(amount) {
+        const num = parseFloat(amount);
+        if (isNaN(num)) {
+          return { valid: false, error: 'Amount must be a number' };
+        }
+        if (num < 0.01) {
+          return { valid: false, error: 'Amount must be at least 0.01' };
+        }
+        if (num > 999999999.99) {
+          return { valid: false, error: 'Amount cannot exceed 999,999,999.99' };
+        }
+        const amountStr = amount.toString();
+        if (!/^\d+(\.\d{1,2})?$/.test(amountStr)) {
+          return { valid: false, error: 'Amount can have at most 2 decimal places' };
+        }
+        return { valid: true, error: '' };
+      }
+      
+      function validateCategory(category, categories) {
+        if (!category || category.trim() === '') {
+          return { valid: false, error: 'Please select a category' };
+        }
+        if (!categories.includes(category)) {
+          return { valid: false, error: 'Selected category does not exist' };
+        }
+        return { valid: true, error: '' };
+      }
+      
+      return {
+        validateTransactionName,
+        validateAmount,
+        validateCategory
+      };
+    })();
+    
+    
+    // ========================================
+    // DATA MODEL MODULE (Mock for Testing)
+    // ========================================
+    const DataModel = (function() {
+      let transactions = [];
+      let categories = ['Food', 'Transport', 'Fun'];
+      const listeners = {};
+      
+      function emit(eventName, data) {
+        if (listeners[eventName]) {
+          listeners[eventName].forEach(callback => {
+            try {
+              callback(data);
+            } catch (e) {
+              console.error('Event handler error:', e);
+            }
+          });
+        }
+      }
+      
+      function on(eventName, callback) {
+        if (!listeners[eventName]) {
+          listeners[eventName] = [];
+        }
+        listeners[eventName].push(callback);
+      }
+      
+      function generateId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+      
+      function addTransaction(transaction) {
+        const newTransaction = {
+          id: generateId(),
+          name: transaction.name.trim(),
+          amount: parseFloat(transaction.amount),
+          category: transaction.category,
+          date: new Date().toISOString(),
+          timestamp: Date.now()
+        };
+        transactions.push(newTransaction);
+        emit('transaction:added', newTransaction);
+        return newTransaction;
+      }
+      
+      function getAllCategories() {
+        return [...categories];
+      }
+      
+      function addCategory(name) {
+        const trimmed = name.trim();
+        if (!categories.includes(trimmed)) {
+          categories.push(trimmed);
+          emit('category:added', trimmed);
+          return true;
+        }
+        return false;
+      }
+      
+      function clearTransactions() {
+        transactions = [];
+      }
+      
+      function getTransactions() {
+        return [...transactions];
+      }
+      
+      return {
+        addTransaction,
+        getAllCategories,
+        addCategory,
+        on,
+        clearTransactions,
+        getTransactions
+      };
+    })();
+    
+    
+    // ========================================
+    // TRANSACTION FORM COMPONENT
+    // ========================================
+    const TransactionForm = (function() {
+      let formElement = null;
+      let nameInput = null;
+      let amountInput = null;
+      let categorySelect = null;
+      let submitButton = null;
+      let formGroups = {};
+      
+      function init(containerElement) {
+        formElement = containerElement;
+        
+        nameInput = formElement.querySelector('#item-name');
+        amountInput = formElement.querySelector('#amount');
+        categorySelect = formElement.querySelector('#category');
+        submitButton = formElement.querySelector('button[type="submit"]');
+        
+        formGroups = {
+          name: nameInput.closest('.form-group'),
+          amount: amountInput.closest('.form-group'),
+          category: categorySelect.closest('.form-group')
+        };
+        
+        formElement.addEventListener('submit', handleSubmit);
+        
+        nameInput.addEventListener('focus', () => clearFieldError('name'));
+        amountInput.addEventListener('focus', () => clearFieldError('amount'));
+        categorySelect.addEventListener('focus', () => clearFieldError('category'));
+        
+        refreshCategories();
+        
+        DataModel.on('category:added', refreshCategories);
+      }
+      
+      function handleSubmit(event) {
+        event.preventDefault();
+        
+        clearErrors();
+        
+        const name = nameInput.value;
+        const amount = amountInput.value;
+        const category = categorySelect.value;
+        
+        const nameValidation = Validator.validateTransactionName(name);
+        const amountValidation = Validator.validateAmount(amount);
+        const categoryValidation = Validator.validateCategory(category, DataModel.getAllCategories());
+        
+        let hasErrors = false;
+        
+        if (!nameValidation.valid) {
+          showError('name', nameValidation.error);
+          hasErrors = true;
+        }
+        
+        if (!amountValidation.valid) {
+          showError('amount', amountValidation.error);
+          hasErrors = true;
+        }
+        
+        if (!categoryValidation.valid) {
+          showError('category', categoryValidation.error);
+          hasErrors = true;
+        }
+        
+        if (hasErrors) {
+          if (!nameValidation.valid) {
+            nameInput.focus();
+          } else if (!amountValidation.valid) {
+            amountInput.focus();
+          } else if (!categoryValidation.valid) {
+            categorySelect.focus();
+          }
+          return;
+        }
+        
+        submitButton.disabled = true;
+        
+        try {
+          const transaction = {
+            name: name,
+            amount: amount,
+            category: category
+          };
+          
+          DataModel.addTransaction(transaction);
+          reset();
+        } catch (error) {
+          console.error('Error adding transaction:', error);
+          showError('name', 'Failed to add transaction. Please try again.');
+        } finally {
+          submitButton.disabled = false;
+        }
+      }
+      
+      function showError(fieldName, message) {
+        const formGroup = formGroups[fieldName];
+        if (!formGroup) return;
+        
+        const errorSpan = formGroup.querySelector('.error-message');
+        if (errorSpan) {
+          errorSpan.textContent = message;
+          errorSpan.setAttribute('role', 'alert');
+        }
+        
+        formGroup.classList.add('error');
+        
+        const input = formGroup.querySelector('input, select');
+        if (input) {
+          input.setAttribute('aria-invalid', 'true');
+        }
+      }
+      
+      function clearFieldError(fieldName) {
+        const formGroup = formGroups[fieldName];
+        if (!formGroup) return;
+        
+        const errorSpan = formGroup.querySelector('.error-message');
+        if (errorSpan) {
+          errorSpan.textContent = '';
+          errorSpan.removeAttribute('role');
+        }
+        
+        formGroup.classList.remove('error');
+        
+        const input = formGroup.querySelector('input, select');
+        if (input) {
+          input.removeAttribute('aria-invalid');
+        }
+      }
+      
+      function clearErrors() {
+        clearFieldError('name');
+        clearFieldError('amount');
+        clearFieldError('category');
+      }
+      
+      function reset() {
+        formElement.reset();
+        clearErrors();
+        categorySelect.value = '';
+      }
+      
+      function refreshCategories() {
+        const categories = DataModel.getAllCategories();
+        const currentValue = categorySelect.value;
+        
+        categorySelect.innerHTML = '<option value="">Select category...</option>';
+        
+        categories.forEach(category => {
+          const option = document.createElement('option');
+          option.value = category;
+          option.textContent = category;
+          categorySelect.appendChild(option);
+        });
+        
+        if (currentValue && categories.includes(currentValue)) {
+          categorySelect.value = currentValue;
+        }
+      }
+      
+      return {
+        init,
+        reset,
+        showError,
+        clearErrors,
+        refreshCategories
+      };
+    })();
+    
+    
+    // ========================================
+    // TEST SUITE
+    // ========================================
+    
+    const results = [];
+    let testForm = null;
+    
+    function addResult(testName, passed, message) {
+      results.push({ testName, passed, message });
+      displayResults();
+    }
+    
+    function displayResults() {
+      const container = document.getElementById('test-results');
+      container.innerHTML = results.map((result, index) => `
+        <div class="test-section">
+          <h3>Test ${index + 1}: ${result.testName}</h3>
+          <div class="test-result ${result.passed ? 'pass' : 'fail'}">
+            ${result.passed ? '✓ PASS' : '✗ FAIL'}: ${result.message}
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function clearResults() {
+      results.length = 0;
+      displayResults();
+    }
+    
+    function resetTestEnvironment() {
+      DataModel.clearTransactions();
+      TransactionForm.reset();
+      TransactionForm.clearErrors();
+    }
+    
+    // ========================================
+    // TEST CASES
+    // ========================================
+    
+    // Requirement 1.2: Validate on submit
+    function testValidFormSubmission() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = 'Coffee';
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const initialCount = DataModel.getTransactions().length;
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const finalCount = DataModel.getTransactions().length;
+      const passed = finalCount === initialCount + 1;
+      
+      addResult(
+        'Valid Form Submission',
+        passed,
+        passed ? 'Transaction added successfully with valid data' : 'Failed to add transaction with valid data'
+      );
+    }
+    
+    function testInvalidNameValidation() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = '';  // Empty name
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const errorMessage = nameInput.closest('.form-group').querySelector('.error-message').textContent;
+      const passed = errorMessage.includes('empty');
+      
+      addResult(
+        'Invalid Name Validation',
+        passed,
+        passed ? 'Correctly displays error for empty name' : 'Failed to validate empty name'
+      );
+    }
+    
+    function testInvalidAmountValidation() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = 'Coffee';
+      amountInput.value = '0.001';  // Below minimum
+      categorySelect.value = 'Food';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const errorMessage = amountInput.closest('.form-group').querySelector('.error-message').textContent;
+      const passed = errorMessage.includes('0.01');
+      
+      addResult(
+        'Invalid Amount Validation',
+        passed,
+        passed ? 'Correctly displays error for amount below minimum' : 'Failed to validate amount'
+      );
+    }
+    
+    function testInvalidCategoryValidation() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = 'Coffee';
+      amountInput.value = '5.50';
+      categorySelect.value = '';  // No category selected
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const errorMessage = categorySelect.closest('.form-group').querySelector('.error-message').textContent;
+      const passed = errorMessage.includes('select');
+      
+      addResult(
+        'Invalid Category Validation',
+        passed,
+        passed ? 'Correctly displays error for unselected category' : 'Failed to validate category'
+      );
+    }
+    
+    // Requirement 1.5: Display inline errors
+    function testInlineErrorDisplay() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      // Submit with all invalid fields
+      nameInput.value = '';
+      amountInput.value = 'abc';
+      categorySelect.value = '';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const nameError = nameInput.closest('.form-group').querySelector('.error-message').textContent;
+      const amountError = amountInput.closest('.form-group').querySelector('.error-message').textContent;
+      const categoryError = categorySelect.closest('.form-group').querySelector('.error-message').textContent;
+      
+      const passed = nameError.length > 0 && amountError.length > 0 && categoryError.length > 0;
+      
+      addResult(
+        'Inline Error Display',
+        passed,
+        passed ? 'All error messages displayed inline correctly' : 'Some error messages not displayed'
+      );
+    }
+    
+    function testErrorClassApplied() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = '';
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const formGroup = nameInput.closest('.form-group');
+      const passed = formGroup.classList.contains('error');
+      
+      addResult(
+        'Error Class Applied to Form Group',
+        passed,
+        passed ? 'Error class applied to form group correctly' : 'Error class not applied'
+      );
+    }
+    
+    function testAriaInvalidAttribute() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = '';
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const passed = nameInput.getAttribute('aria-invalid') === 'true';
+      
+      addResult(
+        'ARIA Invalid Attribute Set',
+        passed,
+        passed ? 'aria-invalid attribute set correctly on invalid field' : 'aria-invalid not set'
+      );
+    }
+    
+    // Test error clearing on focus
+    function testClearErrorOnFocus() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      // First submit with error
+      nameInput.value = '';
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      // Now focus on the name field
+      nameInput.dispatchEvent(new Event('focus', { bubbles: true }));
+      
+      const errorMessage = nameInput.closest('.form-group').querySelector('.error-message').textContent;
+      const formGroup = nameInput.closest('.form-group');
+      
+      const passed = errorMessage === '' && !formGroup.classList.contains('error');
+      
+      addResult(
+        'Clear Error On Field Focus',
+        passed,
+        passed ? 'Error cleared when field receives focus' : 'Error not cleared on focus'
+      );
+    }
+    
+    // Requirement 1.6: Add transaction and clear form
+    function testFormResetAfterSubmission() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = 'Coffee';
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const passed = nameInput.value === '' && amountInput.value === '' && categorySelect.value === '';
+      
+      addResult(
+        'Form Reset After Successful Submission',
+        passed,
+        passed ? 'Form fields cleared after successful submission' : 'Form fields not cleared'
+      );
+    }
+    
+    function testTransactionAddedWithin1Second() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = 'Coffee';
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const startTime = performance.now();
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const endTime = performance.now();
+      const duration = endTime - startTime;
+      
+      const passed = duration < 1000 && DataModel.getTransactions().length > 0;
+      
+      addResult(
+        'Transaction Added Within 1 Second',
+        passed,
+        passed ? `Transaction added in ${duration.toFixed(2)}ms (< 1 second)` : 'Transaction took too long to add'
+      );
+    }
+    
+    // Test double-submission prevention
+    function testDoubleSubmissionPrevention() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      const submitButton = document.querySelector('button[type="submit"]');
+      
+      nameInput.value = 'Coffee';
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const form = document.getElementById('transaction-form');
+      
+      // Submit and check button state immediately
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      // Button should be re-enabled after submission completes
+      // Since submission is synchronous in our test, button should be enabled again
+      const passed = !submitButton.disabled;
+      
+      addResult(
+        'Submit Button State Management',
+        passed,
+        passed ? 'Submit button properly managed during submission' : 'Submit button state not managed'
+      );
+    }
+    
+    // Test category dropdown refresh
+    function testCategoryDropdownRefresh() {
+      resetTestEnvironment();
+      
+      const categorySelect = document.getElementById('category');
+      const initialCount = categorySelect.options.length;
+      
+      DataModel.addCategory('Shopping');
+      
+      const finalCount = categorySelect.options.length;
+      const passed = finalCount === initialCount + 1;
+      
+      addResult(
+        'Category Dropdown Refresh',
+        passed,
+        passed ? 'Category dropdown updated when new category added' : 'Dropdown not refreshed'
+      );
+    }
+    
+    // Test multiple validation errors
+    function testMultipleValidationErrors() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      // All fields invalid
+      nameInput.value = '';
+      amountInput.value = '-5';
+      categorySelect.value = '';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const nameHasError = nameInput.closest('.form-group').classList.contains('error');
+      const amountHasError = amountInput.closest('.form-group').classList.contains('error');
+      const categoryHasError = categorySelect.closest('.form-group').classList.contains('error');
+      
+      const passed = nameHasError && amountHasError && categoryHasError;
+      
+      addResult(
+        'Multiple Validation Errors',
+        passed,
+        passed ? 'All invalid fields show errors simultaneously' : 'Not all errors displayed'
+      );
+    }
+    
+    // Test focus on first error field
+    function testFocusOnFirstErrorField() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      // Set focus tracking
+      let focusedElement = null;
+      const originalFocus = nameInput.focus.bind(nameInput);
+      nameInput.focus = function() {
+        focusedElement = 'name';
+        originalFocus();
+      };
+      
+      nameInput.value = '';
+      amountInput.value = '-5';
+      categorySelect.value = '';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      const passed = focusedElement === 'name';
+      
+      // Restore original focus method
+      nameInput.focus = originalFocus;
+      
+      addResult(
+        'Focus On First Error Field',
+        passed,
+        passed ? 'Focus moved to first error field after validation' : 'Focus not set correctly'
+      );
+    }
+    
+    // Test preserving field values on error
+    function testPreserveFieldValuesOnError() {
+      resetTestEnvironment();
+      
+      const nameInput = document.getElementById('item-name');
+      const amountInput = document.getElementById('amount');
+      const categorySelect = document.getElementById('category');
+      
+      nameInput.value = '';
+      amountInput.value = '5.50';
+      categorySelect.value = 'Food';
+      
+      const form = document.getElementById('transaction-form');
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      
+      // Valid fields should retain their values
+      const passed = amountInput.value === '5.50' && categorySelect.value === 'Food';
+      
+      addResult(
+        'Preserve Field Values On Error',
+        passed,
+        passed ? 'Valid field values preserved when validation fails' : 'Field values lost on error'
+      );
+    }
+    
+    // ========================================
+    // INITIALIZE AND RUN
+    // ========================================
+    
+    function runAllTests() {
+      clearResults();
+      
+      // Requirement 1.2: Validate on submit
+      testValidFormSubmission();
+      testInvalidNameValidation();
+      testInvalidAmountValidation();
+      testInvalidCategoryValidation();
+      
+      // Requirement 1.5: Display inline errors
+      testInlineErrorDisplay();
+      testErrorClassApplied();
+      testAriaInvalidAttribute();
+      testClearErrorOnFocus();
+      
+      // Requirement 1.6: Add transaction and clear form
+      testFormResetAfterSubmission();
+      testTransactionAddedWithin1Second();
+      
+      // Additional functionality tests
+      testDoubleSubmissionPrevention();
+      testCategoryDropdownRefresh();
+      testMultipleValidationErrors();
+      testFocusOnFirstErrorField();
+      testPreserveFieldValuesOnError();
+      
+      // Summary
+      const totalTests = results.length;
+      const passedTests = results.filter(r => r.passed).length;
+      const failedTests = totalTests - passedTests;
+      
+      const summaryDiv = document.createElement('div');
+      summaryDiv.className = 'test-section';
+      summaryDiv.innerHTML = `
+        <h2>Test Summary</h2>
+        <p><strong>Total Tests:</strong> ${totalTests}</p>
+        <p><strong>Passed:</strong> ${passedTests}</p>
+        <p><strong>Failed:</strong> ${failedTests}</p>
+        <div class="test-result ${failedTests === 0 ? 'pass' : 'fail'}">
+          ${failedTests === 0 ? '✓ All tests passed!' : `✗ ${failedTests} test(s) failed`}
+        </div>
+      `;
+      
+      document.getElementById('test-results').appendChild(summaryDiv);
+    }
+    
+    // Initialize the form component when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('transaction-form');
+      TransactionForm.init(form);
+      console.log('TransactionForm component initialized for testing');
+    });
+  </script>
+</body>
+</html>

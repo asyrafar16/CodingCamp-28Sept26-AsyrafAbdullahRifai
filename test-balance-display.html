@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test: BalanceDisplay Component</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #f5f5f5;
+    }
+    
+    .test-section {
+      background: white;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 2rem;
+    }
+    
+    h2 {
+      color: #666;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    
+    .balance-amount {
+      font-size: 3rem;
+      font-weight: 700;
+      text-align: center;
+      color: #4CAF50;
+      padding: 1.5rem 0;
+      transition: color 300ms, background-color 300ms;
+      border-radius: 8px;
+    }
+    
+    .balance-amount.negative {
+      color: #f44336;
+    }
+    
+    @keyframes balance-highlight {
+      0% { background-color: transparent; }
+      50% { background-color: rgba(76, 175, 80, 0.15); }
+      100% { background-color: transparent; }
+    }
+    
+    .balance-amount.highlight {
+      animation: balance-highlight 600ms ease-out;
+    }
+    
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0.5rem;
+      transition: opacity 300ms;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    .test-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .result {
+      padding: 1rem;
+      background: #e8f5e9;
+      border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+      margin-top: 1rem;
+    }
+    
+    .result.error {
+      background: #ffebee;
+      border-left-color: #f44336;
+    }
+    
+    .test-list {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .test-list li {
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+    
+    .test-list li.pass::before {
+      content: '✅ ';
+    }
+    
+    .test-list li.fail::before {
+      content: '❌ ';
+    }
+  </style>
+</head>
+<body>
+  <h1>BalanceDisplay Component Test Suite</h1>
+  
+  <div class="test-section">
+    <h2>Test 1: Basic Display</h2>
+    <div id="balance-1" class="balance-amount">$0.00</div>
+    <div class="test-controls">
+      <button onclick="testBasicDisplay()">Run Test</button>
+    </div>
+    <div id="result-1"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test 2: Currency Formatting</h2>
+    <div id="balance-2" class="balance-amount">$0.00</div>
+    <div class="test-controls">
+      <button onclick="testCurrencyFormatting()">Run Test</button>
+    </div>
+    <div id="result-2"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test 3: Negative Balance (Red Color)</h2>
+    <div id="balance-3" class="balance-amount">$0.00</div>
+    <div class="test-controls">
+      <button onclick="testNegativeBalance()">Run Test</button>
+    </div>
+    <div id="result-3"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test 4: Highlight Animation</h2>
+    <div id="balance-4" class="balance-amount">$100.00</div>
+    <div class="test-controls">
+      <button onclick="testHighlightAnimation()">Trigger Animation</button>
+    </div>
+    <div id="result-4"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test 5: DataModel Integration</h2>
+    <div id="balance-5" class="balance-amount">$0.00</div>
+    <div class="test-controls">
+      <button onclick="testDataModelIntegration()">Run Test</button>
+    </div>
+    <div id="result-5"></div>
+  </div>
+
+  <script>
+    // Mock DataModel for testing
+    const DataModel = (function() {
+      let transactions = [];
+      const listeners = {};
+      
+      function emit(eventName, data) {
+        if (listeners[eventName]) {
+          listeners[eventName].forEach(callback => callback(data));
+        }
+      }
+      
+      function on(eventName, callback) {
+        if (!listeners[eventName]) {
+          listeners[eventName] = [];
+        }
+        listeners[eventName].push(callback);
+      }
+      
+      function addTransaction(transaction) {
+        const newTransaction = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: transaction.name,
+          amount: parseFloat(transaction.amount),
+          category: transaction.category,
+          date: new Date().toISOString(),
+          timestamp: Date.now()
+        };
+        transactions.push(newTransaction);
+        emit('transaction:added', newTransaction);
+        return newTransaction;
+      }
+      
+      function deleteTransaction(id) {
+        const index = transactions.findIndex(t => t.id === id);
+        if (index !== -1) {
+          const deleted = transactions.splice(index, 1)[0];
+          emit('transaction:deleted', deleted);
+          return true;
+        }
+        return false;
+      }
+      
+      function getTotalBalance() {
+        return transactions.reduce((sum, t) => sum + t.amount, 0);
+      }
+      
+      function clearAll() {
+        transactions = [];
+      }
+      
+      return {
+        on,
+        addTransaction,
+        deleteTransaction,
+        getTotalBalance,
+        clearAll
+      };
+    })();
+    
+    // BalanceDisplay Component (copied from main implementation)
+    const BalanceDisplay = (function() {
+      let containerElement = null;
+      let currentTotal = 0;
+      
+      function init(element) {
+        if (!element) {
+          console.error('BalanceDisplay: Container element is required');
+          return;
+        }
+        
+        containerElement = element;
+        
+        // Subscribe to DataModel events
+        DataModel.on('transaction:added', handleTransactionChange);
+        DataModel.on('transaction:deleted', handleTransactionChange);
+        
+        // Initial display
+        update(DataModel.getTotalBalance());
+      }
+      
+      function update(total) {
+        if (!containerElement) {
+          console.error('BalanceDisplay: Component not initialized');
+          return;
+        }
+        
+        // Format number with 2 decimal places and thousands separators
+        const formatted = total.toLocaleString('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        
+        // Update display text
+        containerElement.textContent = formatted;
+        
+        // Apply negative styling if amount is negative
+        if (total < 0) {
+          containerElement.classList.add('negative');
+        } else {
+          containerElement.classList.remove('negative');
+        }
+        
+        // Add highlight animation if value changed (but not on first load)
+        if (currentTotal !== total && currentTotal !== 0) {
+          containerElement.classList.remove('highlight');
+          void containerElement.offsetWidth;
+          containerElement.classList.add('highlight');
+          
+          setTimeout(() => {
+            containerElement.classList.remove('highlight');
+          }, 600);
+        }
+        
+        currentTotal = total;
+      }
+      
+      function handleTransactionChange() {
+        const newTotal = DataModel.getTotalBalance();
+        update(newTotal);
+      }
+      
+      // Reset for testing
+      function reset(element) {
+        containerElement = element;
+        currentTotal = 0;
+        update(0);
+      }
+      
+      return {
+        init,
+        update,
+        reset
+      };
+    })();
+    
+    // Test Functions
+    function showResult(id, message, isError = false) {
+      const resultDiv = document.getElementById(id);
+      resultDiv.className = isError ? 'result error' : 'result';
+      resultDiv.innerHTML = message;
+    }
+    
+    function testBasicDisplay() {
+      const container = document.getElementById('balance-1');
+      BalanceDisplay.reset(container);
+      BalanceDisplay.update(0);
+      
+      const tests = [];
+      tests.push({
+        name: 'Display shows $0.00 initially',
+        pass: container.textContent === '$0.00'
+      });
+      
+      BalanceDisplay.update(100);
+      tests.push({
+        name: 'Display updates to $100.00',
+        pass: container.textContent === '$100.00'
+      });
+      
+      BalanceDisplay.update(1234.56);
+      tests.push({
+        name: 'Display updates to $1,234.56',
+        pass: container.textContent === '$1,234.56'
+      });
+      
+      const html = '<ul class="test-list">' + 
+        tests.map(t => `<li class="${t.pass ? 'pass' : 'fail'}">${t.name}</li>`).join('') +
+        '</ul>';
+      showResult('result-1', html);
+    }
+    
+    function testCurrencyFormatting() {
+      const container = document.getElementById('balance-2');
+      BalanceDisplay.reset(container);
+      
+      const tests = [
+        { value: 0, expected: '$0.00' },
+        { value: 0.01, expected: '$0.01' },
+        { value: 99.99, expected: '$99.99' },
+        { value: 1000, expected: '$1,000.00' },
+        { value: 1234567.89, expected: '$1,234,567.89' },
+        { value: 999999999.99, expected: '$999,999,999.99' }
+      ];
+      
+      const results = tests.map(test => {
+        BalanceDisplay.update(test.value);
+        return {
+          name: `${test.value} → ${test.expected}`,
+          pass: container.textContent === test.expected
+        };
+      });
+      
+      const html = '<ul class="test-list">' + 
+        results.map(t => `<li class="${t.pass ? 'pass' : 'fail'}">${t.name}</li>`).join('') +
+        '</ul>';
+      showResult('result-2', html);
+    }
+    
+    function testNegativeBalance() {
+      const container = document.getElementById('balance-3');
+      BalanceDisplay.reset(container);
+      
+      const tests = [];
+      
+      // Test positive balance (no negative class)
+      BalanceDisplay.update(100);
+      tests.push({
+        name: 'Positive balance: no negative class',
+        pass: !container.classList.contains('negative')
+      });
+      
+      // Test negative balance (has negative class)
+      BalanceDisplay.update(-50.50);
+      tests.push({
+        name: 'Negative balance: has negative class',
+        pass: container.classList.contains('negative')
+      });
+      tests.push({
+        name: 'Negative balance: displays -$50.50',
+        pass: container.textContent === '-$50.50'
+      });
+      
+      // Test zero (no negative class)
+      BalanceDisplay.update(0);
+      tests.push({
+        name: 'Zero balance: no negative class',
+        pass: !container.classList.contains('negative')
+      });
+      
+      const html = '<ul class="test-list">' + 
+        tests.map(t => `<li class="${t.pass ? 'pass' : 'fail'}">${t.name}</li>`).join('') +
+        '</ul>';
+      showResult('result-3', html);
+    }
+    
+    function testHighlightAnimation() {
+      const container = document.getElementById('balance-4');
+      BalanceDisplay.reset(container);
+      BalanceDisplay.update(100);
+      
+      // Trigger animation by changing value
+      setTimeout(() => {
+        BalanceDisplay.update(200);
+        showResult('result-4', '<p>✅ Animation triggered! Watch the background briefly highlight.</p>');
+      }, 100);
+    }
+    
+    function testDataModelIntegration() {
+      DataModel.clearAll();
+      const container = document.getElementById('balance-5');
+      BalanceDisplay.init(container);
+      
+      const tests = [];
+      
+      // Initial state
+      tests.push({
+        name: 'Initial balance is $0.00',
+        pass: container.textContent === '$0.00'
+      });
+      
+      // Add transaction
+      DataModel.addTransaction({ name: 'Test 1', amount: 50.00, category: 'Food' });
+      setTimeout(() => {
+        tests.push({
+          name: 'After adding $50: displays $50.00',
+          pass: container.textContent === '$50.00'
+        });
+        
+        // Add another transaction
+        const tx2 = DataModel.addTransaction({ name: 'Test 2', amount: 25.50, category: 'Transport' });
+        setTimeout(() => {
+          tests.push({
+            name: 'After adding $25.50: displays $75.50',
+            pass: container.textContent === '$75.50'
+          });
+          
+          // Delete a transaction
+          DataModel.deleteTransaction(tx2.id);
+          setTimeout(() => {
+            tests.push({
+              name: 'After deleting $25.50: displays $50.00',
+              pass: container.textContent === '$50.00'
+            });
+            
+            const html = '<ul class="test-list">' + 
+              tests.map(t => `<li class="${t.pass ? 'pass' : 'fail'}">${t.name}</li>`).join('') +
+              '</ul>';
+            showResult('result-5', html);
+          }, 100);
+        }, 100);
+      }, 100);
+    }
+  </script>
+</body>
+</html>

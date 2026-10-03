@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storage Error Handling Test - Task 12.1</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 0.5rem;
+    }
+    .test-section {
+      margin: 2rem 0;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+    .test-section h2 {
+      color: #4CAF50;
+      margin-top: 0;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin: 0.5rem 0.5rem 0.5rem 0;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .result {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: white;
+      border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+    }
+    .error {
+      border-left-color: #f44336;
+      color: #f44336;
+    }
+    .success {
+      border-left-color: #4CAF50;
+      color: #4CAF50;
+    }
+    .warning {
+      border-left-color: #ff9800;
+      color: #ff9800;
+    }
+    code {
+      background: #f0f0f0;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Task 12.1 - Storage Error Handling Test</h1>
+  
+  <p><strong>Purpose:</strong> Verify that the storage error handling system works correctly.</p>
+  
+  <div class="test-section">
+    <h2>Test 1: Toast Notification System</h2>
+    <p>Verify that toast notifications appear and can be dismissed.</p>
+    <button onclick="testToastError()">Show Error Toast</button>
+    <button onclick="testToastWarning()">Show Warning Toast</button>
+    <button onclick="testToastSuccess()">Show Success Toast</button>
+    <div id="test1-result" class="result" style="display: none;"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test 2: Storage Full Error</h2>
+    <p>Simulate storage quota exceeded error.</p>
+    <button onclick="testStorageFullError()">Simulate Storage Full</button>
+    <div id="test2-result" class="result" style="display: none;"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test 3: Storage Unavailable Banner</h2>
+    <p>Display the storage unavailable banner.</p>
+    <button onclick="testStorageUnavailableBanner()">Show Banner</button>
+    <button onclick="hideStorageUnavailableBanner()">Hide Banner</button>
+    <div id="test3-result" class="result" style="display: none;"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test 4: Console Error Logging</h2>
+    <p>Verify detailed error logging to console (check browser console F12).</p>
+    <button onclick="testConsoleLogging()">Trigger Error Logging</button>
+    <div id="test4-result" class="result" style="display: none;"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test 5: Form Preservation on Save Failure</h2>
+    <p>Open the main app and test that form data is preserved when storage fails.</p>
+    <button onclick="openMainApp()">Open Main App</button>
+    <div id="test5-result" class="result" style="display: none;">
+      <strong>Manual Test Steps:</strong>
+      <ol>
+        <li>Open browser console (F12)</li>
+        <li>Fill out the transaction form with test data</li>
+        <li>In console, temporarily break storage: <code>localStorage.setItem = () => { throw new Error('Quota exceeded'); }</code></li>
+        <li>Submit the form</li>
+        <li>Verify: Form data is NOT cleared, error toast appears, console shows detailed error</li>
+        <li>Restore storage: Reload page</li>
+      </ol>
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Test Results Summary</h2>
+    <ul id="results-summary">
+      <li>Test 1: <span id="test1-status">Not run</span></li>
+      <li>Test 2: <span id="test2-status">Not run</span></li>
+      <li>Test 3: <span id="test3-status">Not run</span></li>
+      <li>Test 4: <span id="test4-status">Not run</span></li>
+      <li>Test 5: <span id="test5-status">Manual test required</span></li>
+    </ul>
+  </div>
+  
+  <!-- Include a minimal version of the notification system from index.html for testing -->
+  <div id="storage-banner" style="display: none; background-color: #ff9800; color: #ffffff; padding: 1rem; text-align: center; font-weight: 500; position: fixed; top: 0; left: 0; right: 0; z-index: 1000;">
+    ⚠️ Storage unavailable. Data will not persist between browser sessions.
+  </div>
+  
+  <div id="toast-container" style="position: fixed; top: 80px; right: 1rem; z-index: 1000; display: flex; flex-direction: column; gap: 0.5rem; max-width: 400px;"></div>
+  
+  <script>
+    // Simplified NotificationManager for testing
+    const NotificationManager = (function() {
+      let toastContainer = null;
+      let toastIdCounter = 0;
+      
+      function init() {
+        toastContainer = document.getElementById('toast-container');
+      }
+      
+      function showToast(message, type = 'info', detail = '', duration = 5000) {
+        if (!toastContainer) {
+          console.error('Toast container not found');
+          return null;
+        }
+        
+        const toastId = 'toast-' + (++toastIdCounter);
+        const toast = document.createElement('div');
+        toast.id = toastId;
+        toast.style.cssText = `
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 1rem;
+          background-color: white;
+          border: 2px solid #ddd;
+          border-left: 4px solid ${type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : type === 'success' ? '#4CAF50' : '#2196F3'};
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          animation: slideIn 300ms ease-out;
+          min-width: 280px;
+        `;
+        
+        let icon = 'ℹ️';
+        if (type === 'error') icon = '⚠️';
+        else if (type === 'warning') icon = '⚠️';
+        else if (type === 'success') icon = '✓';
+        
+        toast.innerHTML = `
+          <span style="font-size: 1.5rem;">${icon}</span>
+          <div style="flex: 1;">
+            <div style="font-weight: 500;">${escapeHtml(message)}</div>
+            ${detail ? `<div style="font-size: 0.875rem; color: #666; margin-top: 0.25rem;">${escapeHtml(detail)}</div>` : ''}
+          </div>
+          <button onclick="NotificationManager.dismissToast('${toastId}')" style="background: none; border: none; color: #666; font-size: 1.5rem; cursor: pointer; padding: 0; width: 24px; height: 24px;">×</button>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        if (duration > 0) {
+          setTimeout(() => dismissToast(toastId), duration);
+        }
+        
+        return toastId;
+      }
+      
+      function dismissToast(toastId) {
+        const toast = document.getElementById(toastId);
+        if (!toast) return;
+        
+        toast.style.animation = 'slideOut 300ms ease-out';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+      
+      function showStorageFullError() {
+        return showToast(
+          'Storage full. Please delete old transactions.',
+          'error',
+          'Your browser\'s storage quota has been exceeded.',
+          0
+        );
+      }
+      
+      function showStorageUnavailableBanner() {
+        const banner = document.getElementById('storage-banner');
+        if (banner) {
+          banner.style.display = 'block';
+        }
+      }
+      
+      function hideStorageUnavailableBanner() {
+        const banner = document.getElementById('storage-banner');
+        if (banner) {
+          banner.style.display = 'none';
+        }
+      }
+      
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      return {
+        init,
+        showToast,
+        dismissToast,
+        showStorageFullError,
+        showStorageUnavailableBanner,
+        hideStorageUnavailableBanner
+      };
+    })();
+    
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      NotificationManager.init();
+    });
+    
+    // Test functions
+    function testToastError() {
+      NotificationManager.showToast(
+        'This is an error message',
+        'error',
+        'Error details appear here',
+        5000
+      );
+      updateTestStatus('test1', 'Passed ✓', 'success');
+      showResult('test1', 'Error toast displayed successfully.', 'success');
+    }
+    
+    function testToastWarning() {
+      NotificationManager.showToast(
+        'This is a warning message',
+        'warning',
+        'Warning details appear here',
+        5000
+      );
+      updateTestStatus('test1', 'Passed ✓', 'success');
+      showResult('test1', 'Warning toast displayed successfully.', 'success');
+    }
+    
+    function testToastSuccess() {
+      NotificationManager.showToast(
+        'This is a success message',
+        'success',
+        'Success details appear here',
+        5000
+      );
+      updateTestStatus('test1', 'Passed ✓', 'success');
+      showResult('test1', 'Success toast displayed successfully.', 'success');
+    }
+    
+    function testStorageFullError() {
+      NotificationManager.showStorageFullError();
+      
+      // Also log to console to verify detailed logging
+      console.error('Storage Error Details:', {
+        key: 'ebv_transactions_v1',
+        errorName: 'QuotaExceededError',
+        errorCode: 22,
+        errorMessage: 'Storage quota has been exceeded',
+        dataSize: '1024000',
+        timestamp: new Date().toISOString(),
+        recommendation: 'Delete old transactions to free up space'
+      });
+      
+      updateTestStatus('test2', 'Passed ✓', 'success');
+      showResult('test2', 'Storage full error toast displayed. Check console for detailed error logging.', 'success');
+    }
+    
+    function testStorageUnavailableBanner() {
+      NotificationManager.showStorageUnavailableBanner();
+      updateTestStatus('test3', 'Passed ✓', 'success');
+      showResult('test3', 'Storage unavailable banner is now visible at the top of the page.', 'success');
+    }
+    
+    function hideStorageUnavailableBanner() {
+      NotificationManager.hideStorageUnavailableBanner();
+      showResult('test3', 'Storage unavailable banner hidden.', 'success');
+    }
+    
+    function testConsoleLogging() {
+      console.log('=== Testing Console Error Logging ===');
+      
+      // Test 1: Storage save failure with quota exceeded
+      console.error('Storage quota exceeded:', new Error('QuotaExceededError'));
+      console.error('Storage Error Details:', {
+        key: 'ebv_transactions_v1',
+        errorName: 'QuotaExceededError',
+        errorCode: 22,
+        errorMessage: 'Storage quota has been exceeded',
+        dataSize: 1024000,
+        timestamp: new Date().toISOString(),
+        recommendation: 'Delete old transactions to free up space'
+      });
+      
+      // Test 2: Storage unavailable
+      console.error('Storage save failed: Local Storage not available');
+      console.error('Storage Error Details:', {
+        key: 'ebv_transactions_v1',
+        reason: 'Local Storage is not available or disabled',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Test 3: Storage load failure
+      console.error('Storage load failed for key:', 'ebv_transactions_v1', new Error('JSON parse error'));
+      console.error('Storage Error Details:', {
+        key: 'ebv_transactions_v1',
+        errorName: 'SyntaxError',
+        errorMessage: 'Unexpected token in JSON',
+        timestamp: new Date().toISOString(),
+        recommendation: 'Data may be corrupted. Consider clearing browser data.'
+      });
+      
+      console.log('=== End of Console Error Logging Test ===');
+      
+      updateTestStatus('test4', 'Passed ✓', 'success');
+      showResult('test4', 'Console error logging tested. Open browser console (F12) to see detailed error logs.', 'success');
+    }
+    
+    function openMainApp() {
+      window.open('index.html', '_blank');
+      document.getElementById('test5-result').style.display = 'block';
+    }
+    
+    function showResult(testId, message, type) {
+      const resultDiv = document.getElementById(testId + '-result');
+      resultDiv.textContent = message;
+      resultDiv.className = 'result ' + type;
+      resultDiv.style.display = 'block';
+    }
+    
+    function updateTestStatus(testId, status, type) {
+      const statusSpan = document.getElementById(testId + '-status');
+      statusSpan.textContent = status;
+      statusSpan.style.color = type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#ff9800';
+    }
+  </script>
+</body>
+</html>

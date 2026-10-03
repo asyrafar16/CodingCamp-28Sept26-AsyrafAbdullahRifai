@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StorageManager Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .test-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .test-result {
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      border-radius: 4px;
+    }
+    .pass {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .fail {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-right: 0.5rem;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>StorageManager Module Test Suite</h1>
+  
+  <div class="test-section">
+    <h2>Test Controls</h2>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+  </div>
+  
+  <div id="test-results"></div>
+  
+  <script>
+    // ========================================
+    // STORAGE MANAGER MODULE (from index.html)
+    // ========================================
+    const StorageManager = (function() {
+      const STORAGE_AVAILABLE = checkStorageAvailability();
+      
+      function checkStorageAvailability() {
+        try {
+          const test = '__storage_test__';
+          localStorage.setItem(test, test);
+          localStorage.removeItem(test);
+          return true;
+        } catch (e) {
+          console.warn('Local Storage is not available:', e);
+          return false;
+        }
+      }
+      
+      function save(key, data) {
+        if (!STORAGE_AVAILABLE) {
+          console.error('Storage save failed: Local Storage not available');
+          return false;
+        }
+        
+        try {
+          const wrapper = { 
+            version: "1.0", 
+            data: data 
+          };
+          localStorage.setItem(key, JSON.stringify(wrapper));
+          return true;
+        } catch (e) {
+          if (e.name === 'QuotaExceededError' || e.code === 22) {
+            console.error('Storage quota exceeded:', e);
+          } else {
+            console.error('Storage save failed:', e);
+          }
+          return false;
+        }
+      }
+      
+      function load(key) {
+        if (!STORAGE_AVAILABLE) {
+          console.warn('Storage load skipped: Local Storage not available');
+          return null;
+        }
+        
+        try {
+          const item = localStorage.getItem(key);
+          if (!item) {
+            return null;
+          }
+          
+          const parsed = JSON.parse(item);
+          
+          if (parsed && typeof parsed === 'object' && parsed.version) {
+            return parsed.data;
+          }
+          
+          console.warn('Loaded data without version wrapper for key:', key);
+          return parsed;
+        } catch (e) {
+          console.error('Storage load failed for key:', key, e);
+          return null;
+        }
+      }
+      
+      function clear(key) {
+        if (!STORAGE_AVAILABLE) {
+          console.warn('Storage clear skipped: Local Storage not available');
+          return false;
+        }
+        
+        try {
+          localStorage.removeItem(key);
+          return true;
+        } catch (e) {
+          console.error('Storage clear failed for key:', key, e);
+          return false;
+        }
+      }
+      
+      function isAvailable() {
+        return STORAGE_AVAILABLE;
+      }
+      
+      return {
+        save: save,
+        load: load,
+        clear: clear,
+        isAvailable: isAvailable
+      };
+    })();
+    
+    
+    // ========================================
+    // TEST SUITE
+    // ========================================
+    
+    const results = [];
+    
+    function addResult(testName, passed, message) {
+      results.push({ testName, passed, message });
+      displayResults();
+    }
+    
+    function displayResults() {
+      const container = document.getElementById('test-results');
+      container.innerHTML = results.map((result, index) => `
+        <div class="test-section">
+          <h3>Test ${index + 1}: ${result.testName}</h3>
+          <div class="test-result ${result.passed ? 'pass' : 'fail'}">
+            ${result.passed ? '✓ PASS' : '✗ FAIL'}: ${result.message}
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function clearResults() {
+      results.length = 0;
+      displayResults();
+    }
+    
+    function clearStorage() {
+      localStorage.clear();
+      addResult('Clear Storage', true, 'All local storage cleared');
+    }
+    
+    // ========================================
+    // TEST CASES
+    // ========================================
+    
+    function testStorageAvailability() {
+      const isAvailable = StorageManager.isAvailable();
+      addResult(
+        'Storage Availability',
+        isAvailable === true,
+        isAvailable ? 'Local Storage is available' : 'Local Storage is NOT available'
+      );
+    }
+    
+    function testSaveAndLoadString() {
+      const key = 'ebv_test_string';
+      const testData = 'Hello, World!';
+      
+      const saved = StorageManager.save(key, testData);
+      const loaded = StorageManager.load(key);
+      
+      const passed = saved && loaded === testData;
+      addResult(
+        'Save and Load String',
+        passed,
+        passed ? `Successfully saved and loaded: "${testData}"` : `Failed to save/load string data`
+      );
+      
+      StorageManager.clear(key);
+    }
+    
+    function testSaveAndLoadObject() {
+      const key = 'ebv_test_object';
+      const testData = { name: 'Coffee', amount: 5.50, category: 'Food' };
+      
+      const saved = StorageManager.save(key, testData);
+      const loaded = StorageManager.load(key);
+      
+      const passed = saved && 
+                     loaded !== null && 
+                     loaded.name === testData.name &&
+                     loaded.amount === testData.amount &&
+                     loaded.category === testData.category;
+                     
+      addResult(
+        'Save and Load Object',
+        passed,
+        passed ? `Successfully saved and loaded object` : `Failed to save/load object data`
+      );
+      
+      StorageManager.clear(key);
+    }
+    
+    function testSaveAndLoadArray() {
+      const key = 'ebv_transactions_v1';
+      const testData = [
+        { id: '1', name: 'Coffee', amount: 5.50, category: 'Food' },
+        { id: '2', name: 'Bus', amount: 2.00, category: 'Transport' }
+      ];
+      
+      const saved = StorageManager.save(key, testData);
+      const loaded = StorageManager.load(key);
+      
+      const passed = saved && 
+                     Array.isArray(loaded) &&
+                     loaded.length === 2 &&
+                     loaded[0].name === 'Coffee' &&
+                     loaded[1].name === 'Bus';
+                     
+      addResult(
+        'Save and Load Array (Transactions)',
+        passed,
+        passed ? `Successfully saved and loaded array with ${loaded.length} items` : `Failed to save/load array data`
+      );
+      
+      StorageManager.clear(key);
+    }
+    
+    function testVersionWrapper() {
+      const key = 'ebv_test_version';
+      const testData = { test: 'data' };
+      
+      StorageManager.save(key, testData);
+      
+      // Check raw localStorage to verify version wrapper
+      const raw = localStorage.getItem(key);
+      const parsed = JSON.parse(raw);
+      
+      const hasVersion = parsed.version === "1.0";
+      const hasData = parsed.data && parsed.data.test === 'data';
+      
+      const passed = hasVersion && hasData;
+      
+      addResult(
+        'Version Wrapper Format',
+        passed,
+        passed ? 'Data is wrapped with version "1.0"' : 'Version wrapper is missing or incorrect'
+      );
+      
+      StorageManager.clear(key);
+    }
+    
+    function testLoadNonExistentKey() {
+      const loaded = StorageManager.load('ebv_nonexistent_key_12345');
+      const passed = loaded === null;
+      
+      addResult(
+        'Load Non-Existent Key',
+        passed,
+        passed ? 'Correctly returns null for missing key' : 'Should return null for missing key'
+      );
+    }
+    
+    function testClearKey() {
+      const key = 'ebv_test_clear';
+      StorageManager.save(key, 'test data');
+      
+      const cleared = StorageManager.clear(key);
+      const loaded = StorageManager.load(key);
+      
+      const passed = cleared && loaded === null;
+      
+      addResult(
+        'Clear Key',
+        passed,
+        passed ? 'Successfully cleared key from storage' : 'Failed to clear key'
+      );
+    }
+    
+    function testStorageKeys() {
+      // Test the three required storage keys
+      const transactionsKey = 'ebv_transactions_v1';
+      const categoriesKey = 'ebv_categories_v1';
+      const themeKey = 'ebv_theme_v1';
+      
+      StorageManager.save(transactionsKey, []);
+      StorageManager.save(categoriesKey, ['Food', 'Transport', 'Fun']);
+      StorageManager.save(themeKey, 'light');
+      
+      const transactionsLoaded = Array.isArray(StorageManager.load(transactionsKey));
+      const categoriesLoaded = Array.isArray(StorageManager.load(categoriesKey));
+      const themeLoaded = StorageManager.load(themeKey) === 'light';
+      
+      const passed = transactionsLoaded && categoriesLoaded && themeLoaded;
+      
+      addResult(
+        'Required Storage Keys',
+        passed,
+        passed ? 'All required keys (transactions, categories, theme) work correctly' : 'Some storage keys failed'
+      );
+      
+      StorageManager.clear(transactionsKey);
+      StorageManager.clear(categoriesKey);
+      StorageManager.clear(themeKey);
+    }
+    
+    function testMalformedJSON() {
+      const key = 'ebv_test_malformed';
+      
+      // Manually insert malformed JSON
+      localStorage.setItem(key, '{invalid json}');
+      
+      const loaded = StorageManager.load(key);
+      const passed = loaded === null;
+      
+      addResult(
+        'Handle Malformed JSON',
+        passed,
+        passed ? 'Correctly returns null for malformed JSON' : 'Should handle malformed JSON gracefully'
+      );
+      
+      StorageManager.clear(key);
+    }
+    
+    function runAllTests() {
+      clearResults();
+      
+      testStorageAvailability();
+      testSaveAndLoadString();
+      testSaveAndLoadObject();
+      testSaveAndLoadArray();
+      testVersionWrapper();
+      testLoadNonExistentKey();
+      testClearKey();
+      testStorageKeys();
+      testMalformedJSON();
+      
+      // Summary
+      const totalTests = results.length;
+      const passedTests = results.filter(r => r.passed).length;
+      const failedTests = totalTests - passedTests;
+      
+      const summaryDiv = document.createElement('div');
+      summaryDiv.className = 'test-section';
+      summaryDiv.innerHTML = `
+        <h2>Test Summary</h2>
+        <p><strong>Total Tests:</strong> ${totalTests}</p>
+        <p><strong>Passed:</strong> ${passedTests}</p>
+        <p><strong>Failed:</strong> ${failedTests}</p>
+        <div class="test-result ${failedTests === 0 ? 'pass' : 'fail'}">
+          ${failedTests === 0 ? '✓ All tests passed!' : `✗ ${failedTests} test(s) failed`}
+        </div>
+      `;
+      
+      document.getElementById('test-results').appendChild(summaryDiv);
+    }
+  </script>
+</body>
+</html>

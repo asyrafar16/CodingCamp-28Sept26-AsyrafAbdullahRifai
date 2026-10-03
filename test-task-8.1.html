@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task 8.1 - MonthlySummary Component Verification</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .header {
+      background: white;
+      padding: 30px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin: 0 0 10px 0;
+    }
+    
+    .task-info {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .test-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    
+    h2 {
+      color: #333;
+      font-size: 1.3rem;
+      margin-top: 0;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    
+    #console-output {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      max-height: 500px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    
+    .test-controls {
+      margin-bottom: 15px;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    button.secondary {
+      background-color: #666;
+    }
+    
+    .component-preview {
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    
+    .status-pass {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-fail {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    .status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    @media (max-width: 768px) {
+      .test-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Task 8.1: MonthlySummary Component <span id="status-badge" class="status-badge status-pending">PENDING</span></h1>
+    <div class="task-info">
+      <strong>Requirements:</strong> Implement MonthlySummary component with month selector, category totals, visual bars, show/hide functions, and event subscriptions.
+    </div>
+  </div>
+  
+  <div class="test-container">
+    <div class="panel full-width">
+      <h2>Test Controls</h2>
+      <div class="test-controls">
+        <button onclick="runTests()">Run All Tests</button>
+        <button onclick="clearConsole()" class="secondary">Clear Console</button>
+        <button onclick="location.reload()" class="secondary">Reload Page</button>
+        <button onclick="window.open('index.html', '_blank')">Open Main App</button>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>Component Preview</h2>
+      <div class="component-preview">
+        <p><strong>Month Selector:</strong></p>
+        <div id="preview-month-selector">Loading...</div>
+        
+        <p style="margin-top: 15px;"><strong>Summary Content:</strong></p>
+        <div id="preview-summary-content">Loading...</div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h2>Quick Actions</h2>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button onclick="addSampleTransaction('current')">Add Current Month Transaction</button>
+        <button onclick="addSampleTransaction('last')">Add Last Month Transaction</button>
+        <button onclick="addSampleTransaction('next')">Add Next Month Transaction</button>
+        <button onclick="toggleVisibility()" class="secondary">Toggle Component Visibility</button>
+        <button onclick="inspectComponent()" class="secondary">Inspect Component State</button>
+      </div>
+    </div>
+    
+    <div class="panel full-width">
+      <h2>Console Output</h2>
+      <div id="console-output">Waiting for tests to run...\n</div>
+    </div>
+  </div>
+  
+  <script>
+    // Capture console output
+    const consoleOutput = document.getElementById('console-output');
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    function appendToConsole(message, type = 'log') {
+      const colors = {
+        log: '#d4d4d4',
+        error: '#f48771',
+        warn: '#dcdcaa'
+      };
+      
+      const span = document.createElement('span');
+      span.style.color = colors[type] || colors.log;
+      span.textContent = message + '\n';
+      consoleOutput.appendChild(span);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      appendToConsole(args.join(' '), 'log');
+    };
+    
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      appendToConsole(args.join(' '), 'error');
+    };
+    
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      appendToConsole(args.join(' '), 'warn');
+    };
+    
+    function clearConsole() {
+      consoleOutput.innerHTML = '';
+    }
+    
+    // Load and run verification script
+    function runTests() {
+      clearConsole();
+      console.log('Loading verification script...\n');
+      
+      const script = document.createElement('script');
+      script.src = 'verify-monthlysummary.js';
+      script.onload = function() {
+        console.log('Verification script loaded successfully.\n');
+        updatePreview();
+      };
+      script.onerror = function() {
+        console.error('Failed to load verification script.');
+        updateStatusBadge(false);
+      };
+      
+      // Remove old script if exists
+      const oldScript = document.querySelector('script[src="verify-monthlysummary.js"]');
+      if (oldScript) {
+        oldScript.remove();
+      }
+      
+      document.body.appendChild(script);
+    }
+    
+    function updateStatusBadge(success) {
+      const badge = document.getElementById('status-badge');
+      if (success) {
+        badge.textContent = 'PASS';
+        badge.className = 'status-badge status-pass';
+      } else {
+        badge.textContent = 'FAIL';
+        badge.className = 'status-badge status-fail';
+      }
+    }
+    
+    function updatePreview() {
+      // Update preview areas
+      const monthSelect = document.getElementById('month-select');
+      const summaryContent = document.getElementById('monthly-summary-content');
+      
+      const previewMonthSelector = document.getElementById('preview-month-selector');
+      const previewSummaryContent = document.getElementById('preview-summary-content');
+      
+      if (monthSelect) {
+        const options = Array.from(monthSelect.options).map(opt => opt.textContent).join(', ');
+        previewMonthSelector.innerHTML = `<small>${options || 'No options'}</small>`;
+      }
+      
+      if (summaryContent) {
+        const hasContent = summaryContent.innerHTML.trim().length > 0;
+        previewSummaryContent.innerHTML = hasContent ? 
+          '<small>Content rendered (see main app)</small>' : 
+          '<small>No content yet</small>';
+      }
+    }
+    
+    function addSampleTransaction(timing) {
+      if (typeof DataModel === 'undefined') {
+        console.error('DataModel not available. Open index.html first.');
+        return;
+      }
+      
+      const now = new Date();
+      let transactionDate;
+      
+      switch (timing) {
+        case 'current':
+          transactionDate = now;
+          break;
+        case 'last':
+          transactionDate = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+          break;
+        case 'next':
+          transactionDate = new Date(now.getFullYear(), now.getMonth() + 1, 15);
+          break;
+        default:
+          transactionDate = now;
+      }
+      
+      const categories = ['Food', 'Transport', 'Fun'];
+      const category = categories[Math.floor(Math.random() * categories.length)];
+      const amount = (Math.random() * 100 + 10).toFixed(2);
+      
+      DataModel.addTransaction({
+        name: `Sample ${category}`,
+        amount: parseFloat(amount),
+        category: category
+      });
+      
+      console.log(`Added transaction: $${amount} in ${category} for ${transactionDate.toLocaleDateString()}`);
+      setTimeout(updatePreview, 200);
+    }
+    
+    function toggleVisibility() {
+      if (typeof MonthlySummary === 'undefined') {
+        console.error('MonthlySummary not available. Open index.html first.');
+        return;
+      }
+      
+      const section = document.getElementById('summary-section');
+      if (section) {
+        const isHidden = window.getComputedStyle(section).display === 'none';
+        if (isHidden) {
+          MonthlySummary.show();
+          console.log('Component shown');
+        } else {
+          MonthlySummary.hide();
+          console.log('Component hidden');
+        }
+      }
+    }
+    
+    function inspectComponent() {
+      if (typeof MonthlySummary === 'undefined') {
+        console.error('MonthlySummary not available. Open index.html first.');
+        return;
+      }
+      
+      console.log('\n=== Component State ===');
+      console.log('Component object:', MonthlySummary);
+      console.log('Available methods:', Object.keys(MonthlySummary));
+      
+      const monthSelect = document.getElementById('month-select');
+      const summaryContent = document.getElementById('monthly-summary-content');
+      
+      if (monthSelect) {
+        console.log('Month selector options:', monthSelect.options.length);
+        console.log('Selected value:', monthSelect.value);
+        console.log('Selected text:', monthSelect.options[monthSelect.selectedIndex]?.textContent);
+      }
+      
+      if (summaryContent) {
+        console.log('Summary content length:', summaryContent.innerHTML.length);
+        console.log('Has category rows:', summaryContent.querySelectorAll('.summary-category-row').length);
+        console.log('Has total row:', summaryContent.querySelector('.summary-total-row') !== null);
+        console.log('Has empty state:', summaryContent.innerHTML.includes('No expenses recorded'));
+      }
+      
+      console.log('======================\n');
+    }
+    
+    // Check if we're in an iframe (means index.html is loaded)
+    if (window.self === window.top) {
+      console.log('Note: This test page works best when index.html is already loaded in another tab.');
+      console.log('Click "Open Main App" to open the main application.\n');
+    }
+    
+    // Auto-run tests after a short delay
+    setTimeout(() => {
+      console.log('Auto-running tests...\n');
+      runTests();
+    }, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task 13.1 ARIA Attributes Verification</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .test-section {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    
+    h2 {
+      color: #4CAF50;
+      margin-top: 0;
+    }
+    
+    .test-result {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border-left: 4px solid #ddd;
+    }
+    
+    .test-result.pass {
+      background-color: #e8f5e9;
+      border-left-color: #4CAF50;
+    }
+    
+    .test-result.fail {
+      background-color: #ffebee;
+      border-left-color: #f44336;
+    }
+    
+    .test-result.info {
+      background-color: #e3f2fd;
+      border-left-color: #2196F3;
+    }
+    
+    .status {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .pass .status {
+      color: #4CAF50;
+    }
+    
+    .fail .status {
+      color: #f44336;
+    }
+    
+    .info .status {
+      color: #2196F3;
+    }
+    
+    code {
+      background-color: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    
+    .summary h2 {
+      color: white;
+      margin: 0 0 10px 0;
+    }
+    
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .checklist li {
+      padding: 8px 0;
+    }
+    
+    .checklist li::before {
+      content: '✓ ';
+      color: #4CAF50;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    
+    .attribute-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    
+    .attribute-table th,
+    .attribute-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .attribute-table th {
+      background-color: #4CAF50;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .attribute-table tr:hover {
+      background-color: #f5f5f5;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>Task 13.1: ARIA Attributes and Labels Verification</h1>
+  
+  <div class="summary">
+    <h2>Implementation Checklist</h2>
+    <ul class="checklist">
+      <li>Add <code>aria-label</code> to theme toggle button for screen readers</li>
+      <li>Add <code>aria-invalid</code> to form inputs when validation fails</li>
+      <li>Add <code>aria-describedby</code> to link error messages to form fields</li>
+      <li>Add <code>role="alert"</code> to error message elements for dynamic announcements</li>
+      <li>Ensure all form inputs have associated <code>&lt;label&gt;</code> elements</li>
+      <li>Add descriptive labels to delete buttons for screen readers</li>
+    </ul>
+  </div>
+  
+  <div class="test-section">
+    <h2>Automated Tests</h2>
+    <button onclick="runTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+    <div id="test-results"></div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Live Application Preview</h2>
+    <p>The application below is loaded in an iframe. You can interact with it to test the ARIA attributes.</p>
+    <iframe id="app-frame" src="index.html"></iframe>
+  </div>
+  
+  <script>
+    function addResult(testName, passed, details = '') {
+      const resultsDiv = document.getElementById('test-results');
+      const resultDiv = document.createElement('div');
+      resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+      resultDiv.innerHTML = `
+        <span class="status">${passed ? '✓ PASS' : '✗ FAIL'}</span>
+        <strong>${testName}</strong>
+        ${details ? `<div style="margin-top: 5px; color: #666;">${details}</div>` : ''}
+      `;
+      resultsDiv.appendChild(resultDiv);
+    }
+    
+    function addInfo(message) {
+      const resultsDiv = document.getElementById('test-results');
+      const resultDiv = document.createElement('div');
+      resultDiv.className = 'test-result info';
+      resultDiv.innerHTML = `
+        <span class="status">ℹ INFO</span>
+        ${message}
+      `;
+      resultsDiv.appendChild(resultDiv);
+    }
+    
+    function clearResults() {
+      document.getElementById('test-results').innerHTML = '';
+    }
+    
+    async function runTests() {
+      clearResults();
+      addInfo('Starting ARIA attributes verification tests...');
+      
+      const iframe = document.getElementById('app-frame');
+      await new Promise(resolve => {
+        if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+          resolve();
+        } else {
+          iframe.onload = resolve;
+        }
+      });
+      
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      
+      // Test 1: Theme toggle button has aria-label
+      addInfo('<strong>Test 1:</strong> Theme Toggle Button ARIA Label');
+      const themeToggle = doc.getElementById('theme-toggle');
+      const hasThemeToggleLabel = themeToggle && themeToggle.hasAttribute('aria-label');
+      const themeToggleLabelValue = themeToggle ? themeToggle.getAttribute('aria-label') : '';
+      addResult(
+        'Theme toggle has aria-label',
+        hasThemeToggleLabel,
+        hasThemeToggleLabel ? `Label: "${themeToggleLabelValue}"` : 'Missing aria-label attribute'
+      );
+      
+      // Test 2: Form inputs have aria-describedby
+      addInfo('<strong>Test 2:</strong> Form Inputs Have aria-describedby');
+      const itemNameInput = doc.getElementById('item-name');
+      const amountInput = doc.getElementById('amount');
+      const categorySelect = doc.getElementById('category');
+      
+      const hasItemNameDescribedBy = itemNameInput && itemNameInput.hasAttribute('aria-describedby');
+      const hasAmountDescribedBy = amountInput && amountInput.hasAttribute('aria-describedby');
+      const hasCategoryDescribedBy = categorySelect && categorySelect.hasAttribute('aria-describedby');
+      
+      addResult(
+        'Item Name input has aria-describedby',
+        hasItemNameDescribedBy,
+        hasItemNameDescribedBy ? `Points to: "${itemNameInput.getAttribute('aria-describedby')}"` : 'Missing aria-describedby'
+      );
+      
+      addResult(
+        'Amount input has aria-describedby',
+        hasAmountDescribedBy,
+        hasAmountDescribedBy ? `Points to: "${amountInput.getAttribute('aria-describedby')}"` : 'Missing aria-describedby'
+      );
+      
+      addResult(
+        'Category select has aria-describedby',
+        hasCategoryDescribedBy,
+        hasCategoryDescribedBy ? `Points to: "${categorySelect.getAttribute('aria-describedby')}"` : 'Missing aria-describedby'
+      );
+      
+      // Test 3: Error message elements have role="alert"
+      addInfo('<strong>Test 3:</strong> Error Message Elements Have role="alert"');
+      const itemNameError = doc.getElementById('item-name-error');
+      const amountError = doc.getElementById('amount-error');
+      const categoryError = doc.getElementById('category-error');
+      
+      const hasItemNameErrorRole = itemNameError && itemNameError.getAttribute('role') === 'alert';
+      const hasAmountErrorRole = amountError && amountError.getAttribute('role') === 'alert';
+      const hasCategoryErrorRole = categoryError && categoryError.getAttribute('role') === 'alert';
+      
+      addResult(
+        'Item Name error has role="alert"',
+        hasItemNameErrorRole,
+        hasItemNameErrorRole ? 'Correct role attribute' : 'Missing or incorrect role'
+      );
+      
+      addResult(
+        'Amount error has role="alert"',
+        hasAmountErrorRole,
+        hasAmountErrorRole ? 'Correct role attribute' : 'Missing or incorrect role'
+      );
+      
+      addResult(
+        'Category error has role="alert"',
+        hasCategoryErrorRole,
+        hasCategoryErrorRole ? 'Correct role attribute' : 'Missing or incorrect role'
+      );
+      
+      // Test 4: Error messages have aria-live
+      addInfo('<strong>Test 4:</strong> Error Messages Have aria-live');
+      const hasItemNameLive = itemNameError && itemNameError.hasAttribute('aria-live');
+      const hasAmountLive = amountError && amountError.hasAttribute('aria-live');
+      const hasCategoryLive = categoryError && categoryError.hasAttribute('aria-live');
+      
+      addResult(
+        'Error messages have aria-live attribute',
+        hasItemNameLive && hasAmountLive && hasCategoryLive,
+        `Item Name: ${hasItemNameLive ? itemNameError.getAttribute('aria-live') : 'missing'}, ` +
+        `Amount: ${hasAmountLive ? amountError.getAttribute('aria-live') : 'missing'}, ` +
+        `Category: ${hasCategoryLive ? categoryError.getAttribute('aria-live') : 'missing'}`
+      );
+      
+      // Test 5: All form inputs have associated labels
+      addInfo('<strong>Test 5:</strong> Form Inputs Have Associated Labels');
+      const itemNameLabel = doc.querySelector('label[for="item-name"]');
+      const amountLabel = doc.querySelector('label[for="amount"]');
+      const categoryLabel = doc.querySelector('label[for="category"]');
+      
+      addResult(
+        'Item Name input has associated label',
+        itemNameLabel !== null,
+        itemNameLabel ? `Label text: "${itemNameLabel.textContent}"` : 'Missing label'
+      );
+      
+      addResult(
+        'Amount input has associated label',
+        amountLabel !== null,
+        amountLabel ? `Label text: "${amountLabel.textContent}"` : 'Missing label'
+      );
+      
+      addResult(
+        'Category select has associated label',
+        categoryLabel !== null,
+        categoryLabel ? `Label text: "${categoryLabel.textContent}"` : 'Missing label'
+      );
+      
+      // Test 6: Category input has label
+      addInfo('<strong>Test 6:</strong> Category Manager Input Has Label');
+      const newCategoryInput = doc.getElementById('new-category');
+      const newCategoryLabel = doc.querySelector('label[for="new-category"]');
+      const hasCategoryInputLabel = newCategoryLabel !== null;
+      
+      addResult(
+        'New category input has associated label',
+        hasCategoryInputLabel,
+        hasCategoryInputLabel ? 
+          `Label: "${newCategoryLabel.textContent}" (visually-hidden: ${newCategoryLabel.classList.contains('visually-hidden')})` : 
+          'Missing label'
+      );
+      
+      // Test 7: Category input has aria-describedby
+      const hasCategoryInputDescribedBy = newCategoryInput && newCategoryInput.hasAttribute('aria-describedby');
+      addResult(
+        'New category input has aria-describedby',
+        hasCategoryInputDescribedBy,
+        hasCategoryInputDescribedBy ? `Points to: "${newCategoryInput.getAttribute('aria-describedby')}"` : 'Missing aria-describedby'
+      );
+      
+      // Test 8: Category error has role="alert"
+      const newCategoryError = doc.getElementById('new-category-error');
+      const hasCategoryErrorRole = newCategoryError && newCategoryError.getAttribute('role') === 'alert';
+      addResult(
+        'New category error has role="alert"',
+        hasCategoryErrorRole,
+        hasCategoryErrorRole ? 'Correct role attribute' : 'Missing or incorrect role'
+      );
+      
+      // Test 9: Storage banner has role="alert"
+      addInfo('<strong>Test 9:</strong> Storage Banner Has role="alert"');
+      const storageBanner = doc.getElementById('storage-banner');
+      const hasBannerRole = storageBanner && storageBanner.getAttribute('role') === 'alert';
+      addResult(
+        'Storage banner has role="alert"',
+        hasBannerRole,
+        hasBannerRole ? 'Correct role attribute' : 'Missing or incorrect role'
+      );
+      
+      // Test 10: Toast container has aria-live
+      addInfo('<strong>Test 10:</strong> Toast Container Has aria-live');
+      const toastContainer = doc.getElementById('toast-container');
+      const hasToastLive = toastContainer && toastContainer.hasAttribute('aria-live');
+      addResult(
+        'Toast container has aria-live',
+        hasToastLive,
+        hasToastLive ? `Value: "${toastContainer.getAttribute('aria-live')}"` : 'Missing aria-live'
+      );
+      
+      // Test 11: Trigger validation to test aria-invalid
+      addInfo('<strong>Test 11:</strong> Testing Dynamic ARIA Attributes (Validation)');
+      addInfo('Submitting empty form to trigger validation...');
+      
+      const form = doc.getElementById('transaction-form');
+      if (form) {
+        // Submit form with empty values
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        
+        // Wait a bit for validation to run
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const hasItemNameInvalid = itemNameInput && itemNameInput.getAttribute('aria-invalid') === 'true';
+        const hasAmountInvalid = amountInput && amountInput.getAttribute('aria-invalid') === 'true';
+        const hasCategoryInvalid = categorySelect && categorySelect.getAttribute('aria-invalid') === 'true';
+        
+        addResult(
+          'aria-invalid set on invalid fields',
+          hasItemNameInvalid && hasAmountInvalid && hasCategoryInvalid,
+          `Item Name: ${hasItemNameInvalid}, Amount: ${hasAmountInvalid}, Category: ${hasCategoryInvalid}`
+        );
+        
+        // Check if error messages are populated
+        const hasItemNameErrorText = itemNameError && itemNameError.textContent.length > 0;
+        const hasAmountErrorText = amountError && amountError.textContent.length > 0;
+        const hasCategoryErrorText = categoryError && categoryError.textContent.length > 0;
+        
+        addResult(
+          'Error messages are populated on validation failure',
+          hasItemNameErrorText && hasAmountErrorText && hasCategoryErrorText,
+          `Item Name: ${hasItemNameErrorText}, Amount: ${hasAmountErrorText}, Category: ${hasCategoryErrorText}`
+        );
+      }
+      
+      // Summary
+      addInfo('<strong>Test Summary:</strong> All ARIA attribute tests completed. Check results above.');
+    }
+    
+    // Auto-run tests after iframe loads
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        addInfo('Page loaded. Click "Run All Tests" to verify ARIA attributes.');
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

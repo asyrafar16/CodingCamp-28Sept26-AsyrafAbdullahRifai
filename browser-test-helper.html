@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cross-Browser Test Helper - Expense & Budget Visualizer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      border-left: 4px solid #4CAF50;
+    }
+    
+    .section h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 1.25rem;
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      color: #555;
+    }
+    
+    .info-value {
+      color: #333;
+      font-family: monospace;
+      background: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .status.pass {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.fail {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+    
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 500;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      background: #45a049;
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+    
+    .test-list {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .test-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      background: white;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .test-name {
+      color: #333;
+      font-weight: 500;
+    }
+    
+    .alert {
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    
+    .alert.warning {
+      background: #fff3cd;
+      color: #856404;
+      border-left: 4px solid #ffc107;
+    }
+    
+    .alert.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border-left: 4px solid #17a2b8;
+    }
+    
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      color: #c7254e;
+    }
+    
+    .log-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+    
+    .log-entry {
+      margin-bottom: 5px;
+      line-height: 1.4;
+    }
+    
+    .log-pass { color: #4CAF50; }
+    .log-fail { color: #f44336; }
+    .log-info { color: #2196F3; }
+    .log-warn { color: #ff9800; }
+    
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Cross-Browser Test Helper</h1>
+    <p class="subtitle">Automated browser environment detection and API support verification</p>
+    
+    <div class="alert info">
+      <strong>📋 Instructions:</strong> Run this page in each target browser (Chrome, Firefox, Edge, Safari) to automatically detect browser capabilities and verify API support. Results will help identify any compatibility issues.
+    </div>
+    
+    <!-- Browser Detection -->
+    <div class="section">
+      <h2>🌐 Browser Information</h2>
+      <div class="info-grid">
+        <div class="info-label">Browser:</div>
+        <div class="info-value" id="browser-name">Detecting...</div>
+        
+        <div class="info-label">Version:</div>
+        <div class="info-value" id="browser-version">Detecting...</div>
+        
+        <div class="info-label">User Agent:</div>
+        <div class="info-value" id="user-agent">Detecting...</div>
+        
+        <div class="info-label">Platform:</div>
+        <div class="info-value" id="platform">Detecting...</div>
+        
+        <div class="info-label">Screen Resolution:</div>
+        <div class="info-value" id="screen-res">Detecting...</div>
+        
+        <div class="info-label">Viewport Size:</div>
+        <div class="info-value" id="viewport-size">Detecting...</div>
+      </div>
+    </div>
+    
+    <!-- API Support Detection -->
+    <div class="section">
+      <h2>✅ Required Web API Support</h2>
+      <ul class="test-list" id="api-tests"></ul>
+    </div>
+    
+    <!-- CSS Feature Detection -->
+    <div class="section">
+      <h2>🎨 CSS Feature Support</h2>
+      <ul class="test-list" id="css-tests"></ul>
+    </div>
+    
+    <!-- Quick Functional Tests -->
+    <div class="section">
+      <h2>🔬 Quick Functional Tests</h2>
+      <p style="margin-bottom: 15px; color: #666;">Run automated tests to verify core functionality works in this browser.</p>
+      
+      <div class="button-group">
+        <button onclick="runLocalStorageTest()">Test Local Storage</button>
+        <button onclick="runDateParsingTest()">Test Date Parsing</button>
+        <button onclick="runJSONTest()">Test JSON Operations</button>
+        <button onclick="runChartJSTest()">Test Chart.js Load</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+      </div>
+      
+      <div class="log-output" id="test-logs"></div>
+    </div>
+    
+    <!-- Performance Test -->
+    <div class="section">
+      <h2>⚡ Performance Benchmarks</h2>
+      <p style="margin-bottom: 15px; color: #666;">Measure performance of critical operations.</p>
+      
+      <button onclick="runPerformanceTests()">Run Performance Tests</button>
+      
+      <div class="log-output" id="perf-logs" style="display: none;"></div>
+    </div>
+    
+    <!-- Copy Report -->
+    <div class="section">
+      <h2>📊 Generate Test Report</h2>
+      <p style="margin-bottom: 15px; color: #666;">Generate a summary report to copy into the test documentation.</p>
+      
+      <button onclick="generateReport()">Generate Report</button>
+      <button onclick="copyReport()">Copy to Clipboard</button>
+      
+      <textarea id="report-output" style="width: 100%; height: 200px; margin-top: 15px; padding: 10px; font-family: monospace; display: none;"></textarea>
+    </div>
+  </div>
+  
+  <!-- Chart.js CDN for testing -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  
+  <script>
+    // Browser Detection
+    function detectBrowser() {
+      const ua = navigator.userAgent;
+      let browserName = 'Unknown';
+      let version = 'Unknown';
+      
+      if (ua.indexOf('Firefox') > -1) {
+        browserName = 'Firefox';
+        version = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Unknown';
+      } else if (ua.indexOf('Edg') > -1) {
+        browserName = 'Edge';
+        version = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown';
+      } else if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
+        browserName = 'Chrome';
+        version = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown';
+      } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
+        browserName = 'Safari';
+        version = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Unknown';
+      }
+      
+      return { name: browserName, version: version };
+    }
+    
+    // Update browser info on page load
+    window.addEventListener('DOMContentLoaded', function() {
+      const browser = detectBrowser();
+      document.getElementById('browser-name').textContent = browser.name;
+      document.getElementById('browser-version').textContent = browser.version;
+      document.getElementById('user-agent').textContent = navigator.userAgent;
+      document.getElementById('platform').textContent = navigator.platform;
+      document.getElementById('screen-res').textContent = `${screen.width}x${screen.height}`;
+      document.getElementById('viewport-size').textContent = `${window.innerWidth}x${window.innerHeight}`;
+      
+      // Run API tests
+      runAPITests();
+      runCSSTests();
+    });
+    
+    // API Support Tests
+    function runAPITests() {
+      const tests = [
+        { name: 'Local Storage API', test: () => typeof(Storage) !== 'undefined' },
+        { name: 'JSON.parse/stringify', test: () => typeof JSON.parse === 'function' && typeof JSON.stringify === 'function' },
+        { name: 'ES6 Arrow Functions', test: () => { try { eval('() => {}'); return true; } catch(e) { return false; } } },
+        { name: 'Array.find()', test: () => typeof Array.prototype.find === 'function' },
+        { name: 'Array.includes()', test: () => typeof Array.prototype.includes === 'function' },
+        { name: 'Promise API', test: () => typeof Promise !== 'undefined' },
+        { name: 'Date.toISOString()', test: () => typeof new Date().toISOString === 'function' },
+        { name: 'addEventListener', test: () => typeof document.addEventListener === 'function' },
+        { name: 'querySelector', test: () => typeof document.querySelector === 'function' },
+        { name: 'Canvas API', test: () => !!document.createElement('canvas').getContext }
+      ];
+      
+      const container = document.getElementById('api-tests');
+      container.innerHTML = '';
+      
+      tests.forEach(test => {
+        const result = test.test();
+        const li = document.createElement('li');
+        li.className = 'test-item';
+        li.innerHTML = `
+          <span class="test-name">${test.name}</span>
+          <span class="status ${result ? 'pass' : 'fail'}">${result ? '✓ Supported' : '✗ Not Supported'}</span>
+        `;
+        container.appendChild(li);
+      });
+    }
+    
+    // CSS Feature Tests
+    function runCSSTests() {
+      const tests = [
+        { name: 'CSS Custom Properties', test: () => CSS.supports('color', 'var(--test)') },
+        { name: 'CSS Grid', test: () => CSS.supports('display', 'grid') },
+        { name: 'CSS Flexbox', test: () => CSS.supports('display', 'flex') },
+        { name: 'CSS Transitions', test: () => CSS.supports('transition', 'all 1s') },
+        { name: 'CSS Border Radius', test: () => CSS.supports('border-radius', '4px') },
+        { name: 'CSS Box Shadow', test: () => CSS.supports('box-shadow', '0 0 5px black') }
+      ];
+      
+      const container = document.getElementById('css-tests');
+      container.innerHTML = '';
+      
+      tests.forEach(test => {
+        const result = test.test();
+        const li = document.createElement('li');
+        li.className = 'test-item';
+        li.innerHTML = `
+          <span class="test-name">${test.name}</span>
+          <span class="status ${result ? 'pass' : 'fail'}">${result ? '✓ Supported' : '✗ Not Supported'}</span>
+        `;
+        container.appendChild(li);
+      });
+    }
+    
+    // Logging utility
+    function log(message, type = 'info') {
+      const logsDiv = document.getElementById('test-logs');
+      logsDiv.style.display = 'block';
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      const timestamp = new Date().toLocaleTimeString();
+      entry.textContent = `[${timestamp}] ${message}`;
+      logsDiv.appendChild(entry);
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+    }
+    
+    function clearLogs() {
+      document.getElementById('test-logs').innerHTML = '';
+    }
+    
+    // Local Storage Test
+    function runLocalStorageTest() {
+      log('Testing Local Storage...', 'info');
+      try {
+        const testKey = 'test_key_' + Date.now();
+        const testData = { name: 'Test Transaction', amount: 100.50 };
+        
+        // Test write
+        localStorage.setItem(testKey, JSON.stringify(testData));
+        log('✓ Write to Local Storage: SUCCESS', 'pass');
+        
+        // Test read
+        const retrieved = JSON.parse(localStorage.getItem(testKey));
+        if (retrieved.name === testData.name && retrieved.amount === testData.amount) {
+          log('✓ Read from Local Storage: SUCCESS', 'pass');
+        } else {
+          log('✗ Read from Local Storage: FAILED (data mismatch)', 'fail');
+        }
+        
+        // Test delete
+        localStorage.removeItem(testKey);
+        if (localStorage.getItem(testKey) === null) {
+          log('✓ Delete from Local Storage: SUCCESS', 'pass');
+        } else {
+          log('✗ Delete from Local Storage: FAILED', 'fail');
+        }
+        
+        log('Local Storage test completed successfully!', 'pass');
+      } catch (e) {
+        log('✗ Local Storage test FAILED: ' + e.message, 'fail');
+      }
+    }
+    
+    // Date Parsing Test
+    function runDateParsingTest() {
+      log('Testing Date parsing...', 'info');
+      try {
+        const isoDate = new Date().toISOString();
+        log('Generated ISO date: ' + isoDate, 'info');
+        
+        const parsed = new Date(isoDate);
+        if (!isNaN(parsed.getTime())) {
+          log('✓ ISO 8601 date parsing: SUCCESS', 'pass');
+        } else {
+          log('✗ ISO 8601 date parsing: FAILED', 'fail');
+        }
+        
+        const timestamp = Date.now();
+        const fromTimestamp = new Date(timestamp);
+        if (!isNaN(fromTimestamp.getTime())) {
+          log('✓ Timestamp parsing: SUCCESS', 'pass');
+        } else {
+          log('✗ Timestamp parsing: FAILED', 'fail');
+        }
+        
+        log('Date parsing test completed!', 'pass');
+      } catch (e) {
+        log('✗ Date parsing test FAILED: ' + e.message, 'fail');
+      }
+    }
+    
+    // JSON Test
+    function runJSONTest() {
+      log('Testing JSON operations...', 'info');
+      try {
+        const testObj = {
+          transactions: [
+            { id: '123', name: 'Test', amount: 50.25, category: 'Food' }
+          ],
+          categories: ['Food', 'Transport']
+        };
+        
+        const serialized = JSON.stringify(testObj);
+        log('✓ JSON.stringify: SUCCESS', 'pass');
+        
+        const deserialized = JSON.parse(serialized);
+        if (deserialized.transactions[0].amount === 50.25) {
+          log('✓ JSON.parse: SUCCESS', 'pass');
+        } else {
+          log('✗ JSON.parse: FAILED (data integrity issue)', 'fail');
+        }
+        
+        log('JSON operations test completed!', 'pass');
+      } catch (e) {
+        log('✗ JSON test FAILED: ' + e.message, 'fail');
+      }
+    }
+    
+    // Chart.js Test
+    function runChartJSTest() {
+      log('Testing Chart.js availability...', 'info');
+      if (typeof Chart !== 'undefined') {
+        log('✓ Chart.js loaded from CDN: SUCCESS', 'pass');
+        log('Chart.js version: ' + Chart.version, 'info');
+        
+        // Try creating a dummy chart
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 100;
+          canvas.height = 100;
+          const ctx = canvas.getContext('2d');
+          const testChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: ['Test'],
+              datasets: [{
+                data: [100],
+                backgroundColor: ['#FF6384']
+              }]
+            }
+          });
+          testChart.destroy();
+          log('✓ Chart.js instantiation: SUCCESS', 'pass');
+        } catch (e) {
+          log('✗ Chart.js instantiation: FAILED - ' + e.message, 'fail');
+        }
+      } else {
+        log('✗ Chart.js NOT loaded: FAILED', 'fail');
+      }
+    }
+    
+    // Performance Tests
+    function runPerformanceTests() {
+      const perfLogs = document.getElementById('perf-logs');
+      perfLogs.style.display = 'block';
+      perfLogs.innerHTML = '<div class="log-entry log-info">Running performance benchmarks...</div>';
+      
+      // Test 1: Array operations (simulating transaction list operations)
+      const start1 = performance.now();
+      const transactions = [];
+      for (let i = 0; i < 1000; i++) {
+        transactions.push({
+          id: 'tx_' + i,
+          name: 'Transaction ' + i,
+          amount: Math.random() * 100,
+          category: 'Food',
+          timestamp: Date.now()
+        });
+      }
+      const sorted = transactions.sort((a, b) => b.timestamp - a.timestamp);
+      const end1 = performance.now();
+      perfLogs.innerHTML += `<div class="log-entry log-pass">✓ 1000 transactions sort: ${(end1 - start1).toFixed(2)}ms</div>`;
+      
+      // Test 2: DOM manipulation
+      const start2 = performance.now();
+      const tempDiv = document.createElement('div');
+      for (let i = 0; i < 100; i++) {
+        const item = document.createElement('div');
+        item.textContent = 'Item ' + i;
+        tempDiv.appendChild(item);
+      }
+      const end2 = performance.now();
+      perfLogs.innerHTML += `<div class="log-entry log-pass">✓ 100 DOM elements creation: ${(end2 - start2).toFixed(2)}ms</div>`;
+      
+      // Test 3: JSON operations
+      const start3 = performance.now();
+      const jsonStr = JSON.stringify(transactions);
+      const parsed = JSON.parse(jsonStr);
+      const end3 = performance.now();
+      perfLogs.innerHTML += `<div class="log-entry log-pass">✓ JSON serialize + parse (1000 items): ${(end3 - start3).toFixed(2)}ms</div>`;
+      
+      // Test 4: Local Storage write
+      const start4 = performance.now();
+      try {
+        localStorage.setItem('perf_test', jsonStr);
+        const end4 = performance.now();
+        perfLogs.innerHTML += `<div class="log-entry log-pass">✓ Local Storage write (1000 items): ${(end4 - start4).toFixed(2)}ms</div>`;
+        localStorage.removeItem('perf_test');
+      } catch (e) {
+        perfLogs.innerHTML += `<div class="log-entry log-fail">✗ Local Storage write: FAILED</div>`;
+      }
+      
+      perfLogs.innerHTML += `<div class="log-entry log-info">Performance benchmark completed!</div>`;
+    }
+    
+    // Generate Report
+    function generateReport() {
+      const browser = detectBrowser();
+      const apiTests = document.querySelectorAll('#api-tests .test-item');
+      const cssTests = document.querySelectorAll('#css-tests .test-item');
+      
+      let report = '='.repeat(60) + '\n';
+      report += 'CROSS-BROWSER TEST REPORT\n';
+      report += '='.repeat(60) + '\n\n';
+      
+      report += 'Browser Information:\n';
+      report += '-'.repeat(60) + '\n';
+      report += `Browser: ${browser.name}\n`;
+      report += `Version: ${browser.version}\n`;
+      report += `Platform: ${navigator.platform}\n`;
+      report += `User Agent: ${navigator.userAgent}\n`;
+      report += `Screen Resolution: ${screen.width}x${screen.height}\n`;
+      report += `Viewport Size: ${window.innerWidth}x${window.innerHeight}\n\n`;
+      
+      report += 'Web API Support:\n';
+      report += '-'.repeat(60) + '\n';
+      apiTests.forEach(item => {
+        const name = item.querySelector('.test-name').textContent;
+        const status = item.querySelector('.status').textContent;
+        report += `${name.padEnd(30)} ${status}\n`;
+      });
+      report += '\n';
+      
+      report += 'CSS Feature Support:\n';
+      report += '-'.repeat(60) + '\n';
+      cssTests.forEach(item => {
+        const name = item.querySelector('.test-name').textContent;
+        const status = item.querySelector('.status').textContent;
+        report += `${name.padEnd(30)} ${status}\n`;
+      });
+      report += '\n';
+      
+      report += '='.repeat(60) + '\n';
+      report += 'Test completed on: ' + new Date().toLocaleString() + '\n';
+      report += '='.repeat(60) + '\n';
+      
+      const textarea = document.getElementById('report-output');
+      textarea.value = report;
+      textarea.style.display = 'block';
+    }
+    
+    // Copy Report
+    function copyReport() {
+      const textarea = document.getElementById('report-output');
+      if (textarea.value) {
+        textarea.select();
+        document.execCommand('copy');
+        alert('Report copied to clipboard!');
+      } else {
+        alert('Please generate a report first.');
+      }
+    }
+  </script>
+</body>
+</html>

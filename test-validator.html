@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validator Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .test-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .test-result {
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      border-radius: 4px;
+    }
+    .pass {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .fail {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-right: 0.5rem;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Validator Module Test Suite</h1>
+  
+  <div class="test-section">
+    <h2>Test Controls</h2>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+  </div>
+  
+  <div id="test-results"></div>
+  
+  <script>
+    // ========================================
+    // VALIDATOR MODULE (from index.html)
+    // ========================================
+    const Validator = (function() {
+      function validateTransactionName(name) {
+        const trimmed = name.trim();
+        
+        if (trimmed.length === 0) {
+          return { valid: false, error: 'Item name cannot be empty' };
+        }
+        
+        if (trimmed.length > 100) {
+          return { valid: false, error: 'Item name cannot exceed 100 characters' };
+        }
+        
+        return { valid: true, error: '' };
+      }
+      
+      function validateAmount(amount) {
+        const num = parseFloat(amount);
+        
+        if (isNaN(num)) {
+          return { valid: false, error: 'Amount must be a number' };
+        }
+        
+        if (num < 0.01) {
+          return { valid: false, error: 'Amount must be at least 0.01' };
+        }
+        
+        if (num > 999999999.99) {
+          return { valid: false, error: 'Amount cannot exceed 999,999,999.99' };
+        }
+        
+        // Check for max 2 decimal places using regex
+        const amountStr = amount.toString();
+        if (!/^\d+(\.\d{1,2})?$/.test(amountStr)) {
+          return { valid: false, error: 'Amount can have at most 2 decimal places' };
+        }
+        
+        return { valid: true, error: '' };
+      }
+      
+      function validateCategory(category, categories) {
+        if (!category || category.trim() === '') {
+          return { valid: false, error: 'Please select a category' };
+        }
+        
+        if (!categories.includes(category)) {
+          return { valid: false, error: 'Selected category does not exist' };
+        }
+        
+        return { valid: true, error: '' };
+      }
+      
+      function validateCategoryName(name, existingCategories) {
+        const trimmed = name.trim();
+        
+        // Check if empty or only whitespace
+        if (trimmed.length === 0 || /^\s+$/.test(name)) {
+          return { valid: false, error: 'Category name cannot be empty or only whitespace' };
+        }
+        
+        if (trimmed.length > 50) {
+          return { valid: false, error: 'Category name cannot exceed 50 characters' };
+        }
+        
+        // Case-insensitive duplicate check
+        const lowerName = trimmed.toLowerCase();
+        if (existingCategories.some(cat => cat.toLowerCase() === lowerName)) {
+          return { valid: false, error: 'Category already exists' };
+        }
+        
+        return { valid: true, error: '' };
+      }
+      
+      // Public API
+      return {
+        validateTransactionName: validateTransactionName,
+        validateAmount: validateAmount,
+        validateCategory: validateCategory,
+        validateCategoryName: validateCategoryName
+      };
+    })();
+    
+    
+    // ========================================
+    // TEST SUITE
+    // ========================================
+    
+    const results = [];
+    
+    function addResult(testName, passed, message) {
+      results.push({ testName, passed, message });
+      displayResults();
+    }
+    
+    function displayResults() {
+      const container = document.getElementById('test-results');
+      container.innerHTML = results.map((result, index) => `
+        <div class="test-section">
+          <h3>Test ${index + 1}: ${result.testName}</h3>
+          <div class="test-result ${result.passed ? 'pass' : 'fail'}">
+            ${result.passed ? '✓ PASS' : '✗ FAIL'}: ${result.message}
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function clearResults() {
+      results.length = 0;
+      displayResults();
+    }
+    
+    // ========================================
+    // TEST CASES - validateTransactionName
+    // ========================================
+    
+    function testValidTransactionName() {
+      const result = Validator.validateTransactionName('Coffee');
+      const passed = result.valid === true && result.error === '';
+      addResult(
+        'Valid Transaction Name',
+        passed,
+        passed ? 'Accepts valid transaction name "Coffee"' : 'Should accept valid name'
+      );
+    }
+    
+    function testEmptyTransactionName() {
+      const result = Validator.validateTransactionName('');
+      const passed = result.valid === false && result.error.includes('empty');
+      addResult(
+        'Empty Transaction Name',
+        passed,
+        passed ? 'Correctly rejects empty name' : 'Should reject empty name'
+      );
+    }
+    
+    function testWhitespaceOnlyName() {
+      const result = Validator.validateTransactionName('   ');
+      const passed = result.valid === false && result.error.includes('empty');
+      addResult(
+        'Whitespace Only Transaction Name',
+        passed,
+        passed ? 'Correctly rejects whitespace-only name' : 'Should reject whitespace-only name'
+      );
+    }
+    
+    function testTransactionNameTooLong() {
+      const longName = 'a'.repeat(101);
+      const result = Validator.validateTransactionName(longName);
+      const passed = result.valid === false && result.error.includes('100');
+      addResult(
+        'Transaction Name Too Long',
+        passed,
+        passed ? 'Correctly rejects name exceeding 100 characters' : 'Should reject names over 100 chars'
+      );
+    }
+    
+    function testTransactionNameExactly100Chars() {
+      const name = 'a'.repeat(100);
+      const result = Validator.validateTransactionName(name);
+      const passed = result.valid === true;
+      addResult(
+        'Transaction Name Exactly 100 Characters',
+        passed,
+        passed ? 'Accepts name with exactly 100 characters' : 'Should accept 100 character name'
+      );
+    }
+    
+    function testTransactionNameWithLeadingTrailingSpaces() {
+      const result = Validator.validateTransactionName('  Coffee  ');
+      const passed = result.valid === true;
+      addResult(
+        'Transaction Name With Spaces (Trimmed)',
+        passed,
+        passed ? 'Correctly accepts name after trimming spaces' : 'Should trim and accept valid name'
+      );
+    }
+    
+    // ========================================
+    // TEST CASES - validateAmount
+    // ========================================
+    
+    function testValidAmount() {
+      const result = Validator.validateAmount('45.67');
+      const passed = result.valid === true && result.error === '';
+      addResult(
+        'Valid Amount',
+        passed,
+        passed ? 'Accepts valid amount "45.67"' : 'Should accept valid amount'
+      );
+    }
+    
+    function testMinimumAmount() {
+      const result = Validator.validateAmount('0.01');
+      const passed = result.valid === true;
+      addResult(
+        'Minimum Valid Amount (0.01)',
+        passed,
+        passed ? 'Accepts minimum amount 0.01' : 'Should accept minimum amount 0.01'
+      );
+    }
+    
+    function testAmountBelowMinimum() {
+      const result = Validator.validateAmount('0.001');
+      const passed = result.valid === false && result.error.includes('0.01');
+      addResult(
+        'Amount Below Minimum',
+        passed,
+        passed ? 'Correctly rejects amount below 0.01' : 'Should reject amounts below 0.01'
+      );
+    }
+    
+    function testMaximumAmount() {
+      const result = Validator.validateAmount('999999999.99');
+      const passed = result.valid === true;
+      addResult(
+        'Maximum Valid Amount (999999999.99)',
+        passed,
+        passed ? 'Accepts maximum amount 999999999.99' : 'Should accept maximum amount'
+      );
+    }
+    
+    function testAmountAboveMaximum() {
+      const result = Validator.validateAmount('1000000000');
+      const passed = result.valid === false && result.error.includes('999,999,999.99');
+      addResult(
+        'Amount Above Maximum',
+        passed,
+        passed ? 'Correctly rejects amount above 999999999.99' : 'Should reject amounts above maximum'
+      );
+    }
+    
+    function testAmountWithTwoDecimals() {
+      const result = Validator.validateAmount('10.99');
+      const passed = result.valid === true;
+      addResult(
+        'Amount With Two Decimal Places',
+        passed,
+        passed ? 'Accepts amount with 2 decimal places' : 'Should accept 2 decimal places'
+      );
+    }
+    
+    function testAmountWithOneDecimal() {
+      const result = Validator.validateAmount('10.5');
+      const passed = result.valid === true;
+      addResult(
+        'Amount With One Decimal Place',
+        passed,
+        passed ? 'Accepts amount with 1 decimal place' : 'Should accept 1 decimal place'
+      );
+    }
+    
+    function testAmountWithThreeDecimals() {
+      const result = Validator.validateAmount('10.999');
+      const passed = result.valid === false && result.error.includes('2 decimal');
+      addResult(
+        'Amount With Three Decimal Places',
+        passed,
+        passed ? 'Correctly rejects amount with 3 decimal places' : 'Should reject more than 2 decimals'
+      );
+    }
+    
+    function testAmountWholeNumber() {
+      const result = Validator.validateAmount('100');
+      const passed = result.valid === true;
+      addResult(
+        'Amount Whole Number',
+        passed,
+        passed ? 'Accepts whole number amount' : 'Should accept whole number'
+      );
+    }
+    
+    function testNonNumericAmount() {
+      const result = Validator.validateAmount('abc');
+      const passed = result.valid === false && result.error.includes('number');
+      addResult(
+        'Non-Numeric Amount',
+        passed,
+        passed ? 'Correctly rejects non-numeric amount' : 'Should reject non-numeric values'
+      );
+    }
+    
+    function testNegativeAmount() {
+      const result = Validator.validateAmount('-10');
+      const passed = result.valid === false;
+      addResult(
+        'Negative Amount',
+        passed,
+        passed ? 'Correctly rejects negative amount' : 'Should reject negative amounts'
+      );
+    }
+    
+    // ========================================
+    // TEST CASES - validateCategory
+    // ========================================
+    
+    function testValidCategory() {
+      const categories = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategory('Food', categories);
+      const passed = result.valid === true && result.error === '';
+      addResult(
+        'Valid Category Selection',
+        passed,
+        passed ? 'Accepts valid category from list' : 'Should accept valid category'
+      );
+    }
+    
+    function testEmptyCategory() {
+      const categories = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategory('', categories);
+      const passed = result.valid === false && result.error.includes('select');
+      addResult(
+        'Empty Category Selection',
+        passed,
+        passed ? 'Correctly rejects empty category' : 'Should reject empty category'
+      );
+    }
+    
+    function testWhitespaceCategory() {
+      const categories = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategory('   ', categories);
+      const passed = result.valid === false;
+      addResult(
+        'Whitespace-Only Category',
+        passed,
+        passed ? 'Correctly rejects whitespace-only category' : 'Should reject whitespace category'
+      );
+    }
+    
+    function testNonExistentCategory() {
+      const categories = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategory('Shopping', categories);
+      const passed = result.valid === false && result.error.includes('does not exist');
+      addResult(
+        'Non-Existent Category',
+        passed,
+        passed ? 'Correctly rejects category not in list' : 'Should reject unlisted category'
+      );
+    }
+    
+    // ========================================
+    // TEST CASES - validateCategoryName
+    // ========================================
+    
+    function testValidCategoryName() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategoryName('Shopping', existing);
+      const passed = result.valid === true && result.error === '';
+      addResult(
+        'Valid New Category Name',
+        passed,
+        passed ? 'Accepts valid new category name' : 'Should accept valid category name'
+      );
+    }
+    
+    function testEmptyCategoryName() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategoryName('', existing);
+      const passed = result.valid === false && result.error.includes('empty');
+      addResult(
+        'Empty Category Name',
+        passed,
+        passed ? 'Correctly rejects empty category name' : 'Should reject empty name'
+      );
+    }
+    
+    function testWhitespaceOnlyCategoryName() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategoryName('   ', existing);
+      const passed = result.valid === false && result.error.includes('whitespace');
+      addResult(
+        'Whitespace-Only Category Name',
+        passed,
+        passed ? 'Correctly rejects whitespace-only name' : 'Should reject whitespace name'
+      );
+    }
+    
+    function testCategoryNameTooLong() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const longName = 'a'.repeat(51);
+      const result = Validator.validateCategoryName(longName, existing);
+      const passed = result.valid === false && result.error.includes('50');
+      addResult(
+        'Category Name Too Long',
+        passed,
+        passed ? 'Correctly rejects name exceeding 50 characters' : 'Should reject names over 50 chars'
+      );
+    }
+    
+    function testCategoryNameExactly50Chars() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const name = 'a'.repeat(50);
+      const result = Validator.validateCategoryName(name, existing);
+      const passed = result.valid === true;
+      addResult(
+        'Category Name Exactly 50 Characters',
+        passed,
+        passed ? 'Accepts name with exactly 50 characters' : 'Should accept 50 character name'
+      );
+    }
+    
+    function testDuplicateCategoryName() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategoryName('Food', existing);
+      const passed = result.valid === false && result.error.includes('already exists');
+      addResult(
+        'Duplicate Category Name',
+        passed,
+        passed ? 'Correctly rejects duplicate category name' : 'Should reject duplicate name'
+      );
+    }
+    
+    function testDuplicateCategoryNameCaseInsensitive() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategoryName('food', existing);
+      const passed = result.valid === false && result.error.includes('already exists');
+      addResult(
+        'Duplicate Category Name (Case-Insensitive)',
+        passed,
+        passed ? 'Correctly rejects duplicate with different case' : 'Should reject case-insensitive duplicates'
+      );
+    }
+    
+    function testCategoryNameWithMixedCase() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategoryName('TRANSPORT', existing);
+      const passed = result.valid === false && result.error.includes('already exists');
+      addResult(
+        'Duplicate Category (UPPERCASE)',
+        passed,
+        passed ? 'Correctly detects case-insensitive duplicate' : 'Should detect uppercase duplicate'
+      );
+    }
+    
+    function testCategoryNameWithLeadingTrailingSpaces() {
+      const existing = ['Food', 'Transport', 'Fun'];
+      const result = Validator.validateCategoryName('  Shopping  ', existing);
+      const passed = result.valid === true;
+      addResult(
+        'Category Name With Spaces (Trimmed)',
+        passed,
+        passed ? 'Correctly accepts name after trimming spaces' : 'Should trim and accept valid name'
+      );
+    }
+    
+    // ========================================
+    // RUN ALL TESTS
+    // ========================================
+    
+    function runAllTests() {
+      clearResults();
+      
+      // Transaction Name Tests
+      testValidTransactionName();
+      testEmptyTransactionName();
+      testWhitespaceOnlyName();
+      testTransactionNameTooLong();
+      testTransactionNameExactly100Chars();
+      testTransactionNameWithLeadingTrailingSpaces();
+      
+      // Amount Tests
+      testValidAmount();
+      testMinimumAmount();
+      testAmountBelowMinimum();
+      testMaximumAmount();
+      testAmountAboveMaximum();
+      testAmountWithTwoDecimals();
+      testAmountWithOneDecimal();
+      testAmountWithThreeDecimals();
+      testAmountWholeNumber();
+      testNonNumericAmount();
+      testNegativeAmount();
+      
+      // Category Tests
+      testValidCategory();
+      testEmptyCategory();
+      testWhitespaceCategory();
+      testNonExistentCategory();
+      
+      // Category Name Tests
+      testValidCategoryName();
+      testEmptyCategoryName();
+      testWhitespaceOnlyCategoryName();
+      testCategoryNameTooLong();
+      testCategoryNameExactly50Chars();
+      testDuplicateCategoryName();
+      testDuplicateCategoryNameCaseInsensitive();
+      testCategoryNameWithMixedCase();
+      testCategoryNameWithLeadingTrailingSpaces();
+      
+      // Summary
+      const totalTests = results.length;
+      const passedTests = results.filter(r => r.passed).length;
+      const failedTests = totalTests - passedTests;
+      
+      const summaryDiv = document.createElement('div');
+      summaryDiv.className = 'test-section';
+      summaryDiv.innerHTML = `
+        <h2>Test Summary</h2>
+        <p><strong>Total Tests:</strong> ${totalTests}</p>
+        <p><strong>Passed:</strong> ${passedTests}</p>
+        <p><strong>Failed:</strong> ${failedTests}</p>
+        <div class="test-result ${failedTests === 0 ? 'pass' : 'fail'}">
+          ${failedTests === 0 ? '✓ All tests passed!' : `✗ ${failedTests} test(s) failed`}
+        </div>
+      `;
+      
+      document.getElementById('test-results').appendChild(summaryDiv);
+    }
+  </script>
+</body>
+</html>

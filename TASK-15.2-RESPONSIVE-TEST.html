@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task 15.2 - Responsive Design Test Suite</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    .test-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+    
+    .viewport-controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding: 2rem;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .viewport-btn {
+      padding: 0.75rem 1.5rem;
+      border: 2px solid #667eea;
+      background: white;
+      color: #667eea;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+    }
+    
+    .viewport-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .viewport-btn.active {
+      background: #667eea;
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .iframe-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      background: #e9ecef;
+    }
+    
+    .viewport-info {
+      background: white;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .viewport-info h2 {
+      color: #667eea;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .viewport-info p {
+      color: #6c757d;
+      font-size: 1rem;
+    }
+    
+    .iframe-wrapper {
+      background: white;
+      border: 3px solid #667eea;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+      transition: all 0.4s ease;
+    }
+    
+    .test-iframe {
+      display: block;
+      border: none;
+      transition: all 0.4s ease;
+    }
+    
+    .checklist-section {
+      padding: 2rem;
+      background: white;
+    }
+    
+    .checklist-section h2 {
+      color: #667eea;
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 0.5rem;
+    }
+    
+    .checklist-group {
+      margin-bottom: 2rem;
+    }
+    
+    .checklist-group h3 {
+      color: #495057;
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .checklist-group h3::before {
+      content: "📱";
+      font-size: 1.5rem;
+    }
+    
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid transparent;
+      transition: all 0.2s ease;
+    }
+    
+    .checklist-item:hover {
+      background: #e9ecef;
+      border-left-color: #667eea;
+    }
+    
+    .checklist-item input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 0.25rem;
+    }
+    
+    .checklist-item label {
+      flex: 1;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #495057;
+      line-height: 1.6;
+    }
+    
+    .checklist-item input[type="checkbox"]:checked + label {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    
+    .test-results {
+      padding: 2rem;
+      background: #f8f9fa;
+      border-top: 1px solid #dee2e6;
+    }
+    
+    .test-results h2 {
+      color: #667eea;
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .result-item {
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border-radius: 8px;
+      border-left: 4px solid;
+      background: white;
+    }
+    
+    .result-item.pass {
+      border-left-color: #28a745;
+    }
+    
+    .result-item.fail {
+      border-left-color: #dc3545;
+    }
+    
+    .result-item.pending {
+      border-left-color: #ffc107;
+    }
+    
+    .result-icon {
+      font-size: 1.25rem;
+      margin-right: 0.5rem;
+    }
+    
+    .result-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      font-size: 1.1rem;
+    }
+    
+    .result-description {
+      color: #6c757d;
+      font-size: 0.95rem;
+    }
+    
+    .footer {
+      padding: 2rem;
+      text-align: center;
+      background: #212529;
+      color: white;
+    }
+    
+    .footer p {
+      margin-bottom: 0.5rem;
+    }
+    
+    .instructions {
+      padding: 2rem;
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      margin: 2rem;
+      border-radius: 8px;
+    }
+    
+    .instructions h3 {
+      color: #856404;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+    
+    .instructions ol {
+      margin-left: 1.5rem;
+      color: #856404;
+    }
+    
+    .instructions li {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 0;
+      }
+      
+      .test-container {
+        border-radius: 0;
+      }
+      
+      .viewport-controls {
+        padding: 1rem;
+      }
+      
+      .viewport-btn {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <div class="header">
+      <h1>📱 Task 15.2: Responsive Design Test Suite</h1>
+      <p>Testing viewport sizes: 320px, 768px, 1024px, 1920px</p>
+    </div>
+    
+    <div class="instructions">
+      <h3>🎯 Testing Instructions</h3>
+      <ol>
+        <li>Click each viewport button below to test different screen sizes</li>
+        <li>Check for horizontal scrolling (there should be NONE)</li>
+        <li>Verify all content is visible without overflow or clipping</li>
+        <li>Test touch targets on mobile (minimum 44px x 44px)</li>
+        <li>Check that the layout adapts appropriately at each breakpoint</li>
+        <li>Use the checklist below to track your testing progress</li>
+      </ol>
+    </div>
+    
+    <div class="viewport-controls">
+      <button class="viewport-btn active" onclick="setViewport(320, 568)">
+        📱 Mobile (320px)
+      </button>
+      <button class="viewport-btn" onclick="setViewport(768, 1024)">
+        📱 Tablet (768px)
+      </button>
+      <button class="viewport-btn" onclick="setViewport(1024, 768)">
+        💻 Desktop (1024px)
+      </button>
+      <button class="viewport-btn" onclick="setViewport(1920, 1080)">
+        🖥️ Large Desktop (1920px)
+      </button>
+      <button class="viewport-btn" onclick="setViewport(375, 667)">
+        📱 iPhone (375px)
+      </button>
+      <button class="viewport-btn" onclick="setViewport(414, 896)">
+        📱 iPhone Plus (414px)
+      </button>
+    </div>
+    
+    <div class="iframe-container">
+      <div class="viewport-info">
+        <h2 id="viewport-title">Mobile - 320px × 568px</h2>
+        <p id="viewport-desc">Testing minimum mobile viewport width</p>
+      </div>
+      
+      <div class="iframe-wrapper" id="iframe-wrapper">
+        <iframe 
+          id="test-iframe" 
+          class="test-iframe"
+          src="index.html"
+          width="320"
+          height="568"
+          title="Expense & Budget Visualizer Test Frame">
+        </iframe>
+      </div>
+    </div>
+    
+    <div class="checklist-section">
+      <h2>✅ Testing Checklist</h2>
+      
+      <div class="checklist-group">
+        <h3>320px - Mobile Minimum</h3>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-320-1">
+          <label for="check-320-1">No horizontal scrolling or overflow visible</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-320-2">
+          <label for="check-320-2">All text is readable without zoom</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-320-3">
+          <label for="check-320-3">Header title adjusts to smaller font size (1.5rem)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-320-4">
+          <label for="check-320-4">Touch targets (buttons, inputs) are minimum 44px × 44px</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-320-5">
+          <label for="check-320-5">Single column layout is applied</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-320-6">
+          <label for="check-320-6">Form inputs scale appropriately</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-320-7">
+          <label for="check-320-7">Balance display font size reduces to 2rem</label>
+        </div>
+      </div>
+      
+      <div class="checklist-group">
+        <h3>768px - Tablet Breakpoint</h3>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-768-1">
+          <label for="check-768-1">No horizontal scrolling or overflow</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-768-2">
+          <label for="check-768-2">Two-column grid layout is applied</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-768-3">
+          <label for="check-768-3">Balance spans full width (both columns)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-768-4">
+          <label for="check-768-4">Chart takes up appropriate space in grid</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-768-5">
+          <label for="check-768-5">Form and category sections side-by-side with chart</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-768-6">
+          <label for="check-768-6">No content clipping or overlapping</label>
+        </div>
+      </div>
+      
+      <div class="checklist-group">
+        <h3>1024px - Desktop</h3>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1024-1">
+          <label for="check-1024-1">No horizontal scrolling or overflow</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1024-2">
+          <label for="check-1024-2">Two-column grid layout remains stable</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1024-3">
+          <label for="check-1024-3">All cards have adequate spacing (padding and gaps)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1024-4">
+          <label for="check-1024-4">Typography is clear and properly sized</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1024-5">
+          <label for="check-1024-5">Chart renders at appropriate size</label>
+        </div>
+      </div>
+      
+      <div class="checklist-group">
+        <h3>1920px - Large Desktop</h3>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1920-1">
+          <label for="check-1920-1">No horizontal scrolling or overflow</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1920-2">
+          <label for="check-1920-2">Content is centered and max-width is enforced (1920px)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1920-3">
+          <label for="check-1920-3">No excessive white space or stretched content</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1920-4">
+          <label for="check-1920-4">Grid layout remains two columns with proper gaps</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-1920-5">
+          <label for="check-1920-5">All interactive elements remain accessible</label>
+        </div>
+      </div>
+      
+      <div class="checklist-group">
+        <h3>General - All Viewports</h3>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-gen-1">
+          <label for="check-gen-1">Touch targets are minimum 44px × 44px on mobile viewports</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-gen-2">
+          <label for="check-gen-2">No UI components overlap at any viewport size</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-gen-3">
+          <label for="check-gen-3">Cards maintain proper border-radius and shadow</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-gen-4">
+          <label for="check-gen-4">Transaction list scrolls properly when content exceeds container</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-gen-5">
+          <label for="check-gen-5">Theme toggle button maintains 44px minimum touch target</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-gen-6">
+          <label for="check-gen-6">Form submit button maintains 44px minimum height</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check-gen-7">
+          <label for="check-gen-7">Delete buttons on transactions are minimum 44px × 44px</label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-results">
+      <h2>📊 Automated Test Results</h2>
+      <div id="results-container">
+        <div class="result-item pending">
+          <span class="result-icon">⏳</span>
+          <div class="result-title">Awaiting Manual Testing</div>
+          <div class="result-description">Complete the checklist above to validate responsive design requirements</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p><strong>Task 15.2:</strong> Test responsive design on multiple viewport sizes</p>
+      <p><strong>Requirements:</strong> 9.4 (responsive 320px-1920px without scrolling/clipping)</p>
+      <p>Expense & Budget Visualizer - Quality Assurance Testing</p>
+    </div>
+  </div>
+  
+  <script>
+    const viewportConfigs = {
+      320: { width: 320, height: 568, title: "Mobile - 320px × 568px", desc: "Testing minimum mobile viewport width" },
+      768: { width: 768, height: 1024, title: "Tablet - 768px × 1024px", desc: "Testing tablet breakpoint" },
+      1024: { width: 1024, height: 768, title: "Desktop - 1024px × 768px", desc: "Testing desktop viewport" },
+      1920: { width: 1920, height: 1080, title: "Large Desktop - 1920px × 1080px", desc: "Testing large desktop viewport" },
+      375: { width: 375, height: 667, title: "iPhone - 375px × 667px", desc: "Testing iPhone viewport" },
+      414: { width: 414, height: 896, title: "iPhone Plus - 414px × 896px", desc: "Testing iPhone Plus viewport" }
+    };
+    
+    function setViewport(width, height) {
+      const iframe = document.getElementById('test-iframe');
+      const wrapper = document.getElementById('iframe-wrapper');
+      const title = document.getElementById('viewport-title');
+      const desc = document.getElementById('viewport-desc');
+      
+      // Update iframe dimensions
+      iframe.width = width;
+      iframe.height = height;
+      
+      // Update info
+      const config = viewportConfigs[width];
+      if (config) {
+        title.textContent = config.title;
+        desc.textContent = config.desc;
+      }
+      
+      // Update active button
+      const buttons = document.querySelectorAll('.viewport-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      // Scroll to iframe
+      wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    // Track checkbox changes for progress
+    document.addEventListener('DOMContentLoaded', () => {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      const resultsContainer = document.getElementById('results-container');
+      
+      checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateResults);
+      });
+      
+      function updateResults() {
+        const total = checkboxes.length;
+        const checked = document.querySelectorAll('input[type="checkbox"]:checked').length;
+        const percentage = Math.round((checked / total) * 100);
+        
+        let resultsHTML = '';
+        
+        // Overall progress
+        resultsHTML += `
+          <div class="result-item ${percentage === 100 ? 'pass' : 'pending'}">
+            <span class="result-icon">${percentage === 100 ? '✅' : '⏳'}</span>
+            <div class="result-title">Testing Progress: ${percentage}% Complete</div>
+            <div class="result-description">${checked} of ${total} checks completed</div>
+          </div>
+        `;
+        
+        // Viewport-specific results
+        const viewports = [
+          { prefix: 'check-320-', name: '320px Mobile', count: 7 },
+          { prefix: 'check-768-', name: '768px Tablet', count: 6 },
+          { prefix: 'check-1024-', name: '1024px Desktop', count: 5 },
+          { prefix: 'check-1920-', name: '1920px Large Desktop', count: 5 },
+          { prefix: 'check-gen-', name: 'General (All Viewports)', count: 7 }
+        ];
+        
+        viewports.forEach(vp => {
+          const vpChecked = Array.from(checkboxes)
+            .filter(cb => cb.id.startsWith(vp.prefix) && cb.checked).length;
+          const vpPercentage = Math.round((vpChecked / vp.count) * 100);
+          const status = vpPercentage === 100 ? 'pass' : (vpPercentage > 0 ? 'pending' : 'pending');
+          const icon = vpPercentage === 100 ? '✅' : (vpPercentage > 0 ? '🔄' : '⏳');
+          
+          resultsHTML += `
+            <div class="result-item ${status}">
+              <span class="result-icon">${icon}</span>
+              <div class="result-title">${vp.name}: ${vpPercentage}%</div>
+              <div class="result-description">${vpChecked} of ${vp.count} checks completed</div>
+            </div>
+          `;
+        });
+        
+        resultsContainer.innerHTML = resultsHTML;
+      }
+      
+      // Initialize results
+      updateResults();
+    });
+    
+    // Auto-test for horizontal scrolling
+    function checkForHorizontalScroll() {
+      const iframe = document.getElementById('test-iframe');
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const hasHorizontalScroll = iframeDoc.documentElement.scrollWidth > iframeDoc.documentElement.clientWidth;
+        
+        if (hasHorizontalScroll) {
+          console.warn('⚠️ Horizontal scrolling detected!');
+          return false;
+        } else {
+          console.log('✅ No horizontal scrolling');
+          return true;
+        }
+      } catch (e) {
+        console.log('Could not access iframe content (CORS restriction)');
+        return null;
+      }
+    }
+    
+    // Keyboard navigation for checklist
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ' && e.target.type === 'checkbox') {
+        e.preventDefault();
+        e.target.checked = !e.target.checked;
+        e.target.dispatchEvent(new Event('change'));
+      }
+    });
+  </script>
+</body>
+</html>

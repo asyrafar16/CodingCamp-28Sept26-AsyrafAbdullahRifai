@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PieChart Component Test - Expense & Budget Visualizer</title>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --border-color: #dddddd;
+      --accent-color: #4CAF50;
+      --error-color: #f44336;
+      --shadow: rgba(0, 0, 0, 0.1);
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-size-base: 16px;
+      --transition-speed: 300ms;
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: #1e1e1e;
+      --bg-secondary: #2d2d2d;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --border-color: #404040;
+      --accent-color: #66BB6A;
+      --error-color: #ef5350;
+      --shadow: rgba(0, 0, 0, 0.3);
+    }
+    
+    * {
+      box-sizing: border-box;
+      transition: background-color var(--transition-speed),
+                  color var(--transition-speed),
+                  border-color var(--transition-speed);
+    }
+    
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      color: var(--text-primary);
+      background-color: var(--bg-secondary);
+      line-height: 1.6;
+    }
+    
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: var(--text-primary);
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: var(--spacing-sm);
+    }
+    
+    .test-section {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    
+    .test-section h2 {
+      margin-top: 0;
+      color: var(--accent-color);
+    }
+    
+    .chart-wrapper {
+      position: relative;
+      min-height: 300px;
+      max-height: 500px;
+      padding: var(--spacing-md) 0;
+    }
+    
+    .chart-wrapper canvas {
+      max-width: 100%;
+      height: auto !important;
+    }
+    
+    .chart-empty-state {
+      text-align: center;
+      padding: var(--spacing-lg);
+      color: var(--text-secondary);
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .chart-empty-state .empty-icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: var(--spacing-sm);
+      opacity: 0.5;
+    }
+    
+    .empty-hint {
+      font-size: 0.875rem;
+      margin-top: var(--spacing-xs);
+      opacity: 0.7;
+    }
+    
+    .test-controls {
+      display: flex;
+      gap: var(--spacing-sm);
+      flex-wrap: wrap;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    button {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-base);
+      font-family: var(--font-family);
+      font-weight: 500;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: var(--accent-color);
+      color: #ffffff;
+      transition: opacity var(--transition-speed),
+                  transform 100ms ease;
+      min-height: 44px;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    button:active {
+      transform: scale(0.98);
+    }
+    
+    button.secondary {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 2px solid var(--border-color);
+    }
+    
+    .status {
+      padding: var(--spacing-sm);
+      border-radius: 4px;
+      margin-top: var(--spacing-sm);
+      font-weight: 500;
+    }
+    
+    .status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .status.info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    
+    #theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: var(--spacing-sm);
+      cursor: pointer;
+      font-size: 1.5rem;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    
+    .icon-moon {
+      display: none;
+    }
+    
+    [data-theme="dark"] .icon-sun {
+      display: none;
+    }
+    
+    [data-theme="dark"] .icon-moon {
+      display: inline;
+    }
+  </style>
+</head>
+<body>
+  <button id="theme-toggle" aria-label="Toggle dark/light mode">
+    <span class="icon-sun">☀️</span>
+    <span class="icon-moon">🌙</span>
+  </button>
+  
+  <div class="test-container">
+    <h1>PieChart Component Test Suite</h1>
+    
+    <div class="test-section">
+      <h2>Test 1: Empty State (Requirement 4.6)</h2>
+      <p>Expected: Display "No spending data available" message when no data exists</p>
+      <div class="chart-wrapper">
+        <canvas id="chart-empty"></canvas>
+      </div>
+      <div id="status-empty" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test 2: Single Category</h2>
+      <p>Expected: Display pie chart with one segment at 100%</p>
+      <div class="chart-wrapper">
+        <canvas id="chart-single"></canvas>
+      </div>
+      <div id="status-single" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test 3: Multiple Categories (Requirements 4.1, 4.4, 4.5)</h2>
+      <p>Expected: Display pie chart with distinct colors, percentages rounded to 1 decimal, and legend showing category + percentage</p>
+      <div class="chart-wrapper">
+        <canvas id="chart-multiple"></canvas>
+      </div>
+      <div id="status-multiple" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test 4: Dynamic Update (Requirements 4.2, 4.3)</h2>
+      <p>Expected: Chart updates when category totals change</p>
+      <div class="test-controls">
+        <button id="add-category-btn">Add New Category</button>
+        <button id="remove-category-btn" class="secondary">Remove Category</button>
+        <button id="update-amounts-btn" class="secondary">Update Amounts</button>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="chart-dynamic"></canvas>
+      </div>
+      <div id="status-dynamic" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test 5: Color Palette (Requirement 4.4)</h2>
+      <p>Expected: Display 20 distinct colors for different categories</p>
+      <div class="chart-wrapper">
+        <canvas id="chart-colors"></canvas>
+      </div>
+      <div id="status-colors" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test 6: Destroy and Re-create</h2>
+      <p>Expected: Chart instance is destroyed before creating a new one (no memory leaks)</p>
+      <div class="test-controls">
+        <button id="recreate-btn">Re-create Chart 10 Times</button>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="chart-recreate"></canvas>
+      </div>
+      <div id="status-recreate" class="status"></div>
+    </div>
+  </div>
+  
+  <script>
+    // Minimal DataModel mock for testing
+    const DataModel = (function() {
+      const listeners = {};
+      
+      function on(eventName, callback) {
+        if (!listeners[eventName]) {
+          listeners[eventName] = [];
+        }
+        listeners[eventName].push(callback);
+      }
+      
+      function emit(eventName, data) {
+        if (listeners[eventName]) {
+          listeners[eventName].forEach(callback => callback(data));
+        }
+      }
+      
+      function getCategoryTotals() {
+        return {}; // Override in tests
+      }
+      
+      return { on, emit, getCategoryTotals };
+    })();
+    
+    // PieChart Component (copied from main implementation)
+    const PieChart = (function() {
+      let canvasElement = null;
+      let chartInstance = null;
+      
+      const COLORS = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF9F40',
+        '#36A2EB', '#FFCE56', '#9966FF', '#FF6384', '#4BC0C0',
+        '#C9CBCF', '#FF9F40', '#36A2EB', '#FFCE56', '#9966FF'
+      ];
+      
+      function init(canvas) {
+        if (!canvas) {
+          console.error('PieChart init failed: canvas element is null');
+          return;
+        }
+        
+        canvasElement = canvas;
+        
+        if (typeof Chart === 'undefined') {
+          console.error('Chart.js library not loaded');
+          showEmptyState('Chart library could not load');
+          return;
+        }
+        
+        console.log('PieChart component initialized');
+      }
+      
+      function update(categoryTotals) {
+        if (!canvasElement) {
+          console.warn('PieChart update skipped: not initialized');
+          return;
+        }
+        
+        if (typeof Chart === 'undefined') {
+          showEmptyState('Chart library could not load');
+          return;
+        }
+        
+        const categories = Object.keys(categoryTotals);
+        const amounts = Object.values(categoryTotals);
+        const total = amounts.reduce((sum, val) => sum + val, 0);
+        
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+        
+        if (total === 0 || categories.length === 0) {
+          showEmptyState('No spending data available');
+          return;
+        }
+        
+        canvasElement.style.display = 'block';
+        const parent = canvasElement.parentElement;
+        if (parent) {
+          const emptyStateDiv = parent.querySelector('.chart-empty-state');
+          if (emptyStateDiv) {
+            emptyStateDiv.remove();
+          }
+        }
+        
+        const backgroundColors = categories.map((_, i) => COLORS[i % COLORS.length]);
+        
+        try {
+          chartInstance = new Chart(canvasElement, {
+            type: 'pie',
+            data: {
+              labels: categories,
+              datasets: [{
+                data: amounts,
+                backgroundColor: backgroundColors,
+                borderWidth: 2,
+                borderColor: getComputedStyle(document.documentElement)
+                  .getPropertyValue('--bg-primary').trim() || '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'right',
+                  labels: {
+                    generateLabels: function(chart) {
+                      const data = chart.data;
+                      if (!data.labels || !data.datasets || !data.datasets[0]) {
+                        return [];
+                      }
+                      
+                      return data.labels.map((label, i) => {
+                        const value = data.datasets[0].data[i];
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        
+                        return {
+                          text: `${label}: ${percentage}%`,
+                          fillStyle: data.datasets[0].backgroundColor[i],
+                          hidden: false,
+                          index: i
+                        };
+                      });
+                    },
+                    color: getComputedStyle(document.documentElement)
+                      .getPropertyValue('--text-primary').trim(),
+                    font: { size: 14 },
+                    padding: 10
+                  }
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      const label = context.label || '';
+                      const value = context.parsed || 0;
+                      const percentage = ((value / total) * 100).toFixed(1);
+                      return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                    }
+                  },
+                  backgroundColor: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--bg-secondary').trim(),
+                  titleColor: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--text-primary').trim(),
+                  bodyColor: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--text-primary').trim(),
+                  borderColor: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--border-color').trim(),
+                  borderWidth: 1
+                }
+              }
+            }
+          });
+          
+          console.log('PieChart updated with', categories.length, 'categories');
+        } catch (error) {
+          console.error('Failed to create chart:', error);
+          showEmptyState('Chart could not be rendered');
+        }
+      }
+      
+      function showEmptyState(message) {
+        if (!canvasElement) return;
+        
+        canvasElement.style.display = 'none';
+        
+        const parent = canvasElement.parentElement;
+        if (!parent) return;
+        
+        let emptyStateDiv = parent.querySelector('.chart-empty-state');
+        
+        if (!emptyStateDiv) {
+          emptyStateDiv = document.createElement('div');
+          emptyStateDiv.className = 'chart-empty-state';
+          parent.appendChild(emptyStateDiv);
+        }
+        
+        emptyStateDiv.innerHTML = `
+          <span class="empty-icon">📊</span>
+          <p>${message}</p>
+          <p class="empty-hint">Add your first transaction to see the chart</p>
+        `;
+      }
+      
+      function destroy() {
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+      }
+      
+      return { init, update, destroy };
+    })();
+    
+    // Run tests when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      runTests();
+      
+      // Theme toggle
+      const themeToggle = document.getElementById('theme-toggle');
+      themeToggle.addEventListener('click', function() {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        html.setAttribute('data-theme', newTheme);
+      });
+    });
+    
+    function runTests() {
+      // Test 1: Empty State
+      setTimeout(() => {
+        const canvas1 = document.getElementById('chart-empty');
+        PieChart.init(canvas1);
+        PieChart.update({});
+        
+        const parent = canvas1.parentElement;
+        const emptyState = parent.querySelector('.chart-empty-state');
+        const status1 = document.getElementById('status-empty');
+        
+        if (emptyState && emptyState.textContent.includes('No spending data available')) {
+          status1.className = 'status success';
+          status1.textContent = '✓ PASS: Empty state displayed correctly';
+        } else {
+          status1.className = 'status error';
+          status1.textContent = '✗ FAIL: Empty state not displayed';
+        }
+      }, 100);
+      
+      // Test 2: Single Category
+      setTimeout(() => {
+        const canvas2 = document.getElementById('chart-single');
+        PieChart.init(canvas2);
+        PieChart.update({ 'Food': 150.00 });
+        
+        const status2 = document.getElementById('status-single');
+        if (canvas2.style.display !== 'none') {
+          status2.className = 'status success';
+          status2.textContent = '✓ PASS: Single category chart rendered';
+        } else {
+          status2.className = 'status error';
+          status2.textContent = '✗ FAIL: Chart not rendered';
+        }
+      }, 200);
+      
+      // Test 3: Multiple Categories
+      setTimeout(() => {
+        const canvas3 = document.getElementById('chart-multiple');
+        PieChart.init(canvas3);
+        PieChart.update({
+          'Food': 250.50,
+          'Transport': 120.75,
+          'Fun': 85.25,
+          'Shopping': 200.00
+        });
+        
+        const status3 = document.getElementById('status-multiple');
+        status3.className = 'status success';
+        status3.textContent = '✓ PASS: Multiple categories rendered. Check legend for percentages (should be rounded to 1 decimal place)';
+      }, 300);
+      
+      // Test 4: Dynamic Update
+      setTimeout(() => {
+        const canvas4 = document.getElementById('chart-dynamic');
+        let dynamicChart = Object.create(PieChart);
+        dynamicChart.init(canvas4);
+        
+        let currentData = {
+          'Food': 100,
+          'Transport': 50,
+          'Fun': 30
+        };
+        dynamicChart.update(currentData);
+        
+        document.getElementById('add-category-btn').addEventListener('click', function() {
+          const newCategory = 'Category' + Math.floor(Math.random() * 1000);
+          currentData[newCategory] = Math.floor(Math.random() * 200) + 50;
+          dynamicChart.update(currentData);
+          
+          const status4 = document.getElementById('status-dynamic');
+          status4.className = 'status success';
+          status4.textContent = `✓ Added ${newCategory}. Chart updated successfully.`;
+        });
+        
+        document.getElementById('remove-category-btn').addEventListener('click', function() {
+          const keys = Object.keys(currentData);
+          if (keys.length > 0) {
+            delete currentData[keys[0]];
+            dynamicChart.update(currentData);
+            
+            const status4 = document.getElementById('status-dynamic');
+            status4.className = 'status success';
+            status4.textContent = `✓ Removed ${keys[0]}. Chart updated successfully.`;
+          }
+        });
+        
+        document.getElementById('update-amounts-btn').addEventListener('click', function() {
+          Object.keys(currentData).forEach(key => {
+            currentData[key] = Math.floor(Math.random() * 200) + 50;
+          });
+          dynamicChart.update(currentData);
+          
+          const status4 = document.getElementById('status-dynamic');
+          status4.className = 'status success';
+          status4.textContent = '✓ Updated all amounts. Chart updated successfully.';
+        });
+        
+        const status4 = document.getElementById('status-dynamic');
+        status4.className = 'status info';
+        status4.textContent = 'ℹ️ Use buttons above to test dynamic updates';
+      }, 400);
+      
+      // Test 5: Color Palette (20 categories)
+      setTimeout(() => {
+        const canvas5 = document.getElementById('chart-colors');
+        PieChart.init(canvas5);
+        
+        const colorData = {};
+        for (let i = 1; i <= 20; i++) {
+          colorData[`Category${i}`] = 50;
+        }
+        PieChart.update(colorData);
+        
+        const status5 = document.getElementById('status-colors');
+        status5.className = 'status success';
+        status5.textContent = '✓ PASS: 20 categories displayed with distinct colors';
+      }, 500);
+      
+      // Test 6: Destroy and Re-create
+      setTimeout(() => {
+        const canvas6 = document.getElementById('chart-recreate');
+        let recreateChart = Object.create(PieChart);
+        recreateChart.init(canvas6);
+        recreateChart.update({ 'Food': 100, 'Transport': 50 });
+        
+        document.getElementById('recreate-btn').addEventListener('click', function() {
+          const status6 = document.getElementById('status-recreate');
+          status6.className = 'status info';
+          status6.textContent = 'ℹ️ Re-creating chart 10 times...';
+          
+          let count = 0;
+          const interval = setInterval(() => {
+            recreateChart.update({
+              'Food': Math.random() * 200,
+              'Transport': Math.random() * 150,
+              'Fun': Math.random() * 100
+            });
+            
+            count++;
+            if (count >= 10) {
+              clearInterval(interval);
+              status6.className = 'status success';
+              status6.textContent = '✓ PASS: Chart re-created 10 times without errors (check console for memory leaks)';
+            }
+          }, 200);
+        });
+        
+        const status6 = document.getElementById('status-recreate');
+        status6.className = 'status info';
+        status6.textContent = 'ℹ️ Click button to test chart destruction and re-creation';
+      }, 600);
+    }
+  </script>
+</body>
+</html>

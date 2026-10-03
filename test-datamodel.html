@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataModel Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+    .test-section {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .pass {
+      color: green;
+      font-weight: bold;
+    }
+    .fail {
+      color: red;
+      font-weight: bold;
+    }
+    .result {
+      margin: 5px 0;
+      padding: 5px;
+      background: #f9f9f9;
+      border-left: 3px solid #ddd;
+    }
+    .result.pass {
+      border-left-color: green;
+    }
+    .result.fail {
+      border-left-color: red;
+    }
+    code {
+      background: #e0e0e0;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1>DataModel Module Test Suite</h1>
+  <div id="test-results"></div>
+
+  <script>
+    // Mock StorageManager for testing
+    const StorageManager = (function() {
+      const storage = {};
+      
+      function save(key, data) {
+        storage[key] = JSON.stringify({ version: "1.0", data });
+        return true;
+      }
+      
+      function load(key) {
+        if (storage[key]) {
+          return JSON.parse(storage[key]).data;
+        }
+        return null;
+      }
+      
+      function isAvailable() {
+        return true;
+      }
+      
+      return { save, load, isAvailable };
+    })();
+
+    // DataModel implementation (copied from index.html)
+    const DataModel = (function() {
+      let transactions = [];
+      let categories = ['Food', 'Transport', 'Fun'];
+      const listeners = {};
+      
+      function emit(eventName, data) {
+        if (listeners[eventName]) {
+          listeners[eventName].forEach(callback => {
+            try {
+              callback(data);
+            } catch (e) {
+              console.error(`Error in event listener for ${eventName}:`, e);
+            }
+          });
+        }
+      }
+      
+      function on(eventName, callback) {
+        if (!listeners[eventName]) {
+          listeners[eventName] = [];
+        }
+        listeners[eventName].push(callback);
+      }
+      
+      function generateId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+      
+      function addTransaction(transaction) {
+        const now = new Date();
+        const newTransaction = {
+          id: generateId(),
+          name: transaction.name.trim(),
+          amount: parseFloat(transaction.amount),
+          category: transaction.category,
+          date: now.toISOString(),
+          timestamp: now.getTime()
+        };
+        
+        transactions.push(newTransaction);
+        emit('transaction:added', newTransaction);
+        return newTransaction;
+      }
+      
+      function deleteTransaction(id) {
+        const index = transactions.findIndex(t => t.id === id);
+        if (index !== -1) {
+          const deleted = transactions.splice(index, 1)[0];
+          emit('transaction:deleted', deleted);
+          return true;
+        }
+        return false;
+      }
+      
+      function getAllTransactions() {
+        return [...transactions].sort((a, b) => b.timestamp - a.timestamp);
+      }
+      
+      function getTransactionsByMonth(year, month) {
+        return transactions.filter(t => {
+          const date = new Date(t.date);
+          return date.getFullYear() === year && date.getMonth() === month;
+        });
+      }
+      
+      function addCategory(name) {
+        const trimmed = name.trim();
+        if (!categories.includes(trimmed)) {
+          categories.push(trimmed);
+          emit('category:added', trimmed);
+          return true;
+        }
+        return false;
+      }
+      
+      function getAllCategories() {
+        return [...categories];
+      }
+      
+      function getTotalBalance() {
+        return transactions.reduce((sum, t) => sum + t.amount, 0);
+      }
+      
+      function getCategoryTotals() {
+        const totals = {};
+        transactions.forEach(t => {
+          const cat = t.category || 'Uncategorized';
+          totals[cat] = (totals[cat] || 0) + t.amount;
+        });
+        return totals;
+      }
+      
+      function loadData() {
+        const loadedTransactions = StorageManager.load('ebv_transactions_v1');
+        const loadedCategories = StorageManager.load('ebv_categories_v1');
+        
+        if (loadedTransactions && Array.isArray(loadedTransactions)) {
+          transactions = loadedTransactions;
+        }
+        
+        if (loadedCategories && Array.isArray(loadedCategories)) {
+          categories = loadedCategories;
+        }
+        
+        emit('data:loaded');
+      }
+      
+      function saveData() {
+        const transactionsSaved = StorageManager.save('ebv_transactions_v1', transactions);
+        const categoriesSaved = StorageManager.save('ebv_categories_v1', categories);
+        
+        if (!transactionsSaved || !categoriesSaved) {
+          console.error('Failed to save data to storage');
+          return false;
+        }
+        
+        return true;
+      }
+      
+      return {
+        addTransaction,
+        deleteTransaction,
+        getAllTransactions,
+        getTransactionsByMonth,
+        addCategory,
+        getAllCategories,
+        getTotalBalance,
+        getCategoryTotals,
+        on,
+        loadData,
+        saveData
+      };
+    })();
+
+    // Test Framework
+    const testResults = document.getElementById('test-results');
+    
+    function runTest(name, testFn) {
+      const section = document.createElement('div');
+      section.className = 'test-section';
+      
+      const title = document.createElement('h2');
+      title.textContent = name;
+      section.appendChild(title);
+      
+      try {
+        testFn(section);
+      } catch (e) {
+        const result = document.createElement('div');
+        result.className = 'result fail';
+        result.innerHTML = `<span class="fail">✗ FAIL</span> - ${e.message}`;
+        section.appendChild(result);
+      }
+      
+      testResults.appendChild(section);
+    }
+    
+    function assert(condition, message) {
+      const result = document.createElement('div');
+      result.className = condition ? 'result pass' : 'result fail';
+      result.innerHTML = condition 
+        ? `<span class="pass">✓ PASS</span> - ${message}`
+        : `<span class="fail">✗ FAIL</span> - ${message}`;
+      return result;
+    }
+
+    // Run Tests
+    runTest('1. Initial State', (section) => {
+      const categories = DataModel.getAllCategories();
+      section.appendChild(assert(categories.length === 3, 'Has 3 default categories'));
+      section.appendChild(assert(categories.includes('Food'), 'Has "Food" category'));
+      section.appendChild(assert(categories.includes('Transport'), 'Has "Transport" category'));
+      section.appendChild(assert(categories.includes('Fun'), 'Has "Fun" category'));
+      section.appendChild(assert(DataModel.getTotalBalance() === 0, 'Initial balance is zero'));
+    });
+
+    runTest('2. Add Transaction', (section) => {
+      const transaction = DataModel.addTransaction({
+        name: 'Coffee',
+        amount: 5.50,
+        category: 'Food'
+      });
+      
+      section.appendChild(assert(transaction.id, 'Transaction has ID'));
+      section.appendChild(assert(transaction.name === 'Coffee', 'Transaction name is correct'));
+      section.appendChild(assert(transaction.amount === 5.50, 'Transaction amount is correct'));
+      section.appendChild(assert(transaction.category === 'Food', 'Transaction category is correct'));
+      section.appendChild(assert(transaction.date, 'Transaction has ISO date'));
+      section.appendChild(assert(transaction.timestamp, 'Transaction has timestamp'));
+      section.appendChild(assert(DataModel.getTotalBalance() === 5.50, 'Balance updated to 5.50'));
+    });
+
+    runTest('3. Get All Transactions', (section) => {
+      const allTransactions = DataModel.getAllTransactions();
+      section.appendChild(assert(allTransactions.length === 1, 'Has 1 transaction'));
+      section.appendChild(assert(allTransactions[0].name === 'Coffee', 'Retrieved correct transaction'));
+    });
+
+    runTest('4. Add Multiple Transactions', (section) => {
+      DataModel.addTransaction({ name: 'Bus fare', amount: 2.50, category: 'Transport' });
+      DataModel.addTransaction({ name: 'Movie', amount: 12.00, category: 'Fun' });
+      
+      const total = DataModel.getTotalBalance();
+      section.appendChild(assert(total === 20.00, `Total balance is 20.00 (got ${total})`));
+      section.appendChild(assert(DataModel.getAllTransactions().length === 3, 'Has 3 transactions'));
+    });
+
+    runTest('5. Category Totals', (section) => {
+      const totals = DataModel.getCategoryTotals();
+      section.appendChild(assert(totals['Food'] === 5.50, `Food total is 5.50 (got ${totals['Food']})`));
+      section.appendChild(assert(totals['Transport'] === 2.50, `Transport total is 2.50 (got ${totals['Transport']})`));
+      section.appendChild(assert(totals['Fun'] === 12.00, `Fun total is 12.00 (got ${totals['Fun']})`));
+    });
+
+    runTest('6. Delete Transaction', (section) => {
+      const transactions = DataModel.getAllTransactions();
+      const idToDelete = transactions[0].id;
+      const deleted = DataModel.deleteTransaction(idToDelete);
+      
+      section.appendChild(assert(deleted === true, 'Delete returned true'));
+      section.appendChild(assert(DataModel.getAllTransactions().length === 2, 'Transaction count reduced to 2'));
+    });
+
+    runTest('7. Add Custom Category', (section) => {
+      const added = DataModel.addCategory('Shopping');
+      section.appendChild(assert(added === true, 'New category added'));
+      section.appendChild(assert(DataModel.getAllCategories().includes('Shopping'), 'Shopping category exists'));
+      
+      const duplicate = DataModel.addCategory('Shopping');
+      section.appendChild(assert(duplicate === false, 'Duplicate category rejected'));
+    });
+
+    runTest('8. Event System', (section) => {
+      let eventFired = false;
+      let eventData = null;
+      
+      DataModel.on('transaction:added', (data) => {
+        eventFired = true;
+        eventData = data;
+      });
+      
+      const transaction = DataModel.addTransaction({ name: 'Test', amount: 1.00, category: 'Food' });
+      
+      section.appendChild(assert(eventFired === true, 'Event listener triggered'));
+      section.appendChild(assert(eventData && eventData.name === 'Test', 'Event data passed correctly'));
+    });
+
+    runTest('9. Save and Load Data', (section) => {
+      const saved = DataModel.saveData();
+      section.appendChild(assert(saved === true, 'Data saved successfully'));
+      
+      DataModel.loadData();
+      section.appendChild(assert(DataModel.getAllTransactions().length > 0, 'Transactions loaded'));
+      section.appendChild(assert(DataModel.getAllCategories().length > 3, 'Categories loaded (including custom)'));
+    });
+
+    runTest('10. Filter by Month', (section) => {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      
+      const monthTransactions = DataModel.getTransactionsByMonth(currentYear, currentMonth);
+      section.appendChild(assert(monthTransactions.length > 0, `Found transactions for current month (${monthTransactions.length})`));
+      
+      const futureTransactions = DataModel.getTransactionsByMonth(2099, 11);
+      section.appendChild(assert(futureTransactions.length === 0, 'No transactions in future month'));
+    });
+
+    runTest('11. UUID Generation', (section) => {
+      const t1 = DataModel.addTransaction({ name: 'Test1', amount: 1.00, category: 'Food' });
+      const t2 = DataModel.addTransaction({ name: 'Test2', amount: 1.00, category: 'Food' });
+      
+      section.appendChild(assert(t1.id !== t2.id, 'Generated unique IDs'));
+      section.appendChild(assert(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(t1.id), 'ID matches UUID v4 format'));
+    });
+
+    console.log('All tests completed!');
+  </script>
+</body>
+</html>

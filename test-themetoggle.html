@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThemeToggle Component Test</title>
+  
+  <style>
+    /* Theme variables */
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --border-color: #dddddd;
+      --accent-color: #4CAF50;
+      --transition-speed: 300ms;
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: #1e1e1e;
+      --bg-secondary: #2d2d2d;
+      --text-primary: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --border-color: #404040;
+      --accent-color: #66BB6A;
+    }
+    
+    * {
+      transition: background-color var(--transition-speed),
+                  color var(--transition-speed),
+                  border-color var(--transition-speed);
+    }
+    
+    body {
+      margin: 0;
+      padding: 2rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+    
+    .test-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 2rem;
+    }
+    
+    h1 {
+      color: var(--text-primary);
+      margin-top: 0;
+    }
+    
+    #theme-toggle {
+      background: none;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      font-size: 1.5rem;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #theme-toggle:hover {
+      border-color: var(--accent-color);
+    }
+    
+    #theme-toggle:focus {
+      outline: 2px solid var(--accent-color);
+      outline-offset: 2px;
+    }
+    
+    .icon-moon {
+      display: none;
+    }
+    
+    [data-theme="dark"] .icon-sun {
+      display: none;
+    }
+    
+    [data-theme="dark"] .icon-moon {
+      display: inline;
+    }
+    
+    .test-section {
+      margin-top: 2rem;
+      padding: 1rem;
+      background-color: var(--bg-secondary);
+      border-radius: 4px;
+    }
+    
+    .test-item {
+      margin: 1rem 0;
+      padding: 0.5rem;
+      border-left: 3px solid var(--accent-color);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+    }
+    
+    .status {
+      font-weight: bold;
+      color: var(--accent-color);
+    }
+    
+    button {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 0.5rem 0.5rem 0.5rem 0;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>ThemeToggle Component Test</h1>
+    
+    <div>
+      <button id="theme-toggle" aria-label="Toggle dark/light mode">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+      </button>
+      <p>Click the button above to toggle between light and dark themes</p>
+    </div>
+    
+    <div class="test-section">
+      <h2>Test Results</h2>
+      <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Manual Tests</h2>
+      <button onclick="runTests()">Run All Tests</button>
+      <button onclick="testPersistence()">Test Persistence</button>
+      <button onclick="clearStorage()">Clear Storage</button>
+      <button onclick="checkCurrentTheme()">Check Current Theme</button>
+      <div id="manual-results" style="margin-top: 1rem;"></div>
+    </div>
+  </div>
+  
+  <script>
+    // StorageManager (simplified for testing)
+    const StorageManager = (function() {
+      function checkStorageAvailability() {
+        try {
+          const test = '__storage_test__';
+          localStorage.setItem(test, test);
+          localStorage.removeItem(test);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+      
+      const STORAGE_AVAILABLE = checkStorageAvailability();
+      
+      function save(key, data) {
+        if (!STORAGE_AVAILABLE) return false;
+        try {
+          const wrapper = { version: "1.0", data: data };
+          localStorage.setItem(key, JSON.stringify(wrapper));
+          return true;
+        } catch (e) {
+          console.error('Storage save failed:', e);
+          return false;
+        }
+      }
+      
+      function load(key) {
+        if (!STORAGE_AVAILABLE) return null;
+        try {
+          const item = localStorage.getItem(key);
+          if (!item) return null;
+          const parsed = JSON.parse(item);
+          return parsed.data;
+        } catch (e) {
+          console.error('Storage load failed:', e);
+          return null;
+        }
+      }
+      
+      function clear(key) {
+        if (!STORAGE_AVAILABLE) return false;
+        try {
+          localStorage.removeItem(key);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+      
+      return { save, load, clear, isAvailable: () => STORAGE_AVAILABLE };
+    })();
+    
+    // ThemeToggle Component
+    const ThemeToggle = (function() {
+      const STORAGE_KEY = 'ebv_theme_v1';
+      const DEFAULT_THEME = 'light';
+      let currentTheme = DEFAULT_THEME;
+      let buttonElement = null;
+      let sunIcon = null;
+      let moonIcon = null;
+      
+      function init(button) {
+        if (!button) {
+          console.error('ThemeToggle init failed: button element is null');
+          return;
+        }
+        
+        buttonElement = button;
+        sunIcon = button.querySelector('.icon-sun');
+        moonIcon = button.querySelector('.icon-moon');
+        
+        if (!sunIcon || !moonIcon) {
+          console.warn('ThemeToggle: Icon elements not found in button');
+        }
+        
+        // Load saved theme preference from storage
+        const savedTheme = StorageManager.load(STORAGE_KEY);
+        if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+          currentTheme = savedTheme;
+        } else {
+          currentTheme = DEFAULT_THEME;
+        }
+        
+        // Apply saved theme before first render
+        setTheme(currentTheme);
+        
+        // Attach event listener
+        buttonElement.addEventListener('click', toggleTheme);
+        
+        console.log('ThemeToggle initialized with theme:', currentTheme);
+      }
+      
+      function setTheme(theme) {
+        if (theme !== 'light' && theme !== 'dark') {
+          console.error('Invalid theme:', theme);
+          return;
+        }
+        
+        document.documentElement.setAttribute('data-theme', theme);
+        currentTheme = theme;
+        updateIconVisibility(theme);
+      }
+      
+      function toggleTheme() {
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        
+        const saved = StorageManager.save(STORAGE_KEY, newTheme);
+        if (!saved) {
+          console.warn('Failed to save theme preference');
+        }
+      }
+      
+      function updateIconVisibility(theme) {
+        // CSS handles this automatically via data-theme attribute
+      }
+      
+      function getTheme() {
+        return currentTheme;
+      }
+      
+      return { init, setTheme, toggleTheme, getTheme };
+    })();
+    
+    // Initialize on load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+    
+    function init() {
+      const button = document.getElementById('theme-toggle');
+      if (button) {
+        ThemeToggle.init(button);
+      }
+      runTests();
+    }
+    
+    // Test Functions
+    function addTestResult(message, passed) {
+      const resultsDiv = document.getElementById('test-results');
+      const item = document.createElement('div');
+      item.className = 'test-item';
+      item.innerHTML = `<span class="status">${passed ? '✅ PASS' : '❌ FAIL'}</span>: ${message}`;
+      resultsDiv.appendChild(item);
+    }
+    
+    function runTests() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = '<h3>Automated Tests</h3>';
+      
+      // Test 1: ThemeToggle is defined
+      addTestResult('ThemeToggle module is defined', typeof ThemeToggle !== 'undefined');
+      
+      // Test 2: Current theme is set
+      const currentTheme = ThemeToggle.getTheme();
+      addTestResult(`Current theme is "${currentTheme}"`, currentTheme === 'light' || currentTheme === 'dark');
+      
+      // Test 3: HTML element has data-theme attribute
+      const htmlTheme = document.documentElement.getAttribute('data-theme');
+      addTestResult(`HTML has data-theme="${htmlTheme}"`, htmlTheme === currentTheme);
+      
+      // Test 4: Icon visibility (light mode shows moon, dark shows sun)
+      const sunIcon = document.querySelector('.icon-sun');
+      const moonIcon = document.querySelector('.icon-moon');
+      const sunDisplay = window.getComputedStyle(sunIcon).display;
+      const moonDisplay = window.getComputedStyle(moonIcon).display;
+      
+      if (currentTheme === 'light') {
+        addTestResult('Light mode: sun visible, moon hidden', sunDisplay !== 'none' && moonDisplay === 'none');
+      } else {
+        addTestResult('Dark mode: moon visible, sun hidden', moonDisplay !== 'none' && sunDisplay === 'none');
+      }
+      
+      // Test 5: Storage availability
+      addTestResult('Local Storage is available', StorageManager.isAvailable());
+      
+      // Test 6: Theme saved to storage
+      const savedTheme = StorageManager.load('ebv_theme_v1');
+      addTestResult(`Theme saved to storage: "${savedTheme}"`, savedTheme === currentTheme);
+    }
+    
+    function testPersistence() {
+      const manualDiv = document.getElementById('manual-results');
+      manualDiv.innerHTML = '<h3>Persistence Test</h3>';
+      
+      const currentTheme = ThemeToggle.getTheme();
+      const oppositeTheme = currentTheme === 'light' ? 'dark' : 'light';
+      
+      manualDiv.innerHTML += `<p>Current theme: <strong>${currentTheme}</strong></p>`;
+      manualDiv.innerHTML += `<p>Toggling to: <strong>${oppositeTheme}</strong></p>`;
+      
+      ThemeToggle.toggleTheme();
+      
+      const newTheme = ThemeToggle.getTheme();
+      const savedTheme = StorageManager.load('ebv_theme_v1');
+      
+      manualDiv.innerHTML += `<p>New theme: <strong>${newTheme}</strong></p>`;
+      manualDiv.innerHTML += `<p>Saved theme: <strong>${savedTheme}</strong></p>`;
+      manualDiv.innerHTML += `<p><strong>Reload the page to verify persistence!</strong></p>`;
+    }
+    
+    function clearStorage() {
+      StorageManager.clear('ebv_theme_v1');
+      const manualDiv = document.getElementById('manual-results');
+      manualDiv.innerHTML = '<p><strong>Storage cleared!</strong> Reload the page to test default theme.</p>';
+    }
+    
+    function checkCurrentTheme() {
+      const manualDiv = document.getElementById('manual-results');
+      const currentTheme = ThemeToggle.getTheme();
+      const htmlTheme = document.documentElement.getAttribute('data-theme');
+      const savedTheme = StorageManager.load('ebv_theme_v1');
+      
+      manualDiv.innerHTML = '<h3>Current Theme Status</h3>';
+      manualDiv.innerHTML += `<p>ThemeToggle.getTheme(): <strong>${currentTheme}</strong></p>`;
+      manualDiv.innerHTML += `<p>HTML data-theme: <strong>${htmlTheme}</strong></p>`;
+      manualDiv.innerHTML += `<p>Saved in storage: <strong>${savedTheme || 'not saved'}</strong></p>`;
+    }
+  </script>
+</body>
+</html>

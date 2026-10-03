@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TransactionList Component Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    button.secondary {
+      background-color: #2196F3;
+    }
+    
+    button.danger {
+      background-color: #f44336;
+    }
+    
+    .transaction-container {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    
+    .transaction-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      margin-bottom: 8px;
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      transition: opacity 300ms, transform 300ms;
+    }
+    
+    .transaction-item:hover {
+      background-color: #e8e8e8;
+    }
+    
+    .transaction-item.deleting {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    
+    .transaction-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .transaction-name {
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .transaction-details {
+      display: flex;
+      gap: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .transaction-amount {
+      font-weight: 600;
+      color: #4CAF50;
+    }
+    
+    .transaction-category {
+      color: #666;
+    }
+    
+    .transaction-delete {
+      background-color: transparent;
+      border: none;
+      color: #f44336;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px 8px;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 4px;
+      transition: background-color 200ms;
+    }
+    
+    .transaction-delete:hover {
+      background-color: rgba(244, 67, 54, 0.1);
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .empty-icon {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 10px;
+      opacity: 0.5;
+    }
+    
+    .empty-hint {
+      font-size: 14px;
+      margin-top: 8px;
+      opacity: 0.7;
+    }
+    
+    .test-results {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #e8f5e9;
+      border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+    }
+    
+    .test-results.error {
+      background-color: #ffebee;
+      border-left-color: #f44336;
+    }
+    
+    .test-results h3 {
+      margin-top: 0;
+    }
+    
+    .test-results ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>TransactionList Component Test</h1>
+  
+  <div class="test-section">
+    <h2>Test Controls</h2>
+    <div class="test-controls">
+      <button onclick="testAddTransaction()">Add Sample Transaction</button>
+      <button class="secondary" onclick="testAddMultiple()">Add 5 Transactions</button>
+      <button class="danger" onclick="testClearAll()">Clear All</button>
+      <button class="secondary" onclick="runAllTests()">Run All Tests</button>
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Transaction List</h2>
+    <div id="transaction-list" class="transaction-container"></div>
+  </div>
+  
+  <div id="test-results"></div>
+  
+  <script>
+    // Minimal StorageManager mock for testing
+    const StorageManager = (function() {
+      function save(key, data) { return true; }
+      function load(key) { return null; }
+      return { save, load, isAvailable: () => true };
+    })();
+    
+    // DataModel module (simplified version for testing)
+    const DataModel = (function() {
+      let transactions = [];
+      let categories = ['Food', 'Transport', 'Fun'];
+      const listeners = {};
+      
+      function emit(eventName, data) {
+        if (listeners[eventName]) {
+          listeners[eventName].forEach(callback => callback(data));
+        }
+      }
+      
+      function on(eventName, callback) {
+        if (!listeners[eventName]) {
+          listeners[eventName] = [];
+        }
+        listeners[eventName].push(callback);
+      }
+      
+      function generateId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+      
+      function addTransaction(transaction) {
+        const now = new Date();
+        const newTransaction = {
+          id: generateId(),
+          name: transaction.name.trim(),
+          amount: parseFloat(transaction.amount),
+          category: transaction.category,
+          date: now.toISOString(),
+          timestamp: now.getTime()
+        };
+        transactions.push(newTransaction);
+        emit('transaction:added', newTransaction);
+        return newTransaction;
+      }
+      
+      function deleteTransaction(id) {
+        const index = transactions.findIndex(t => t.id === id);
+        if (index !== -1) {
+          const deleted = transactions.splice(index, 1)[0];
+          emit('transaction:deleted', deleted);
+          return true;
+        }
+        return false;
+      }
+      
+      function getAllTransactions() {
+        return [...transactions].sort((a, b) => b.timestamp - a.timestamp);
+      }
+      
+      function loadData() { emit('data:loaded'); }
+      function saveData() { return true; }
+      
+      return {
+        addTransaction,
+        deleteTransaction,
+        getAllTransactions,
+        on,
+        loadData,
+        saveData
+      };
+    })();
+    
+    // TransactionList component (from index.html)
+    const TransactionList = (function() {
+      let containerElement = null;
+      
+      function init(container) {
+        containerElement = container;
+        
+        DataModel.on('transaction:added', function(transaction) {
+          render(DataModel.getAllTransactions());
+          setTimeout(function() {
+            if (containerElement) {
+              containerElement.scrollTop = containerElement.scrollHeight;
+            }
+          }, 100);
+        });
+        
+        DataModel.on('transaction:deleted', function(deletedTransaction) {
+          render(DataModel.getAllTransactions());
+        });
+        
+        showEmpty();
+      }
+      
+      function render(transactions) {
+        if (!containerElement) {
+          console.error('TransactionList not initialized');
+          return;
+        }
+        
+        if (!transactions || transactions.length === 0) {
+          showEmpty();
+          return;
+        }
+        
+        containerElement.innerHTML = '';
+        
+        transactions.forEach(function(transaction) {
+          const item = createTransactionItem(transaction);
+          containerElement.appendChild(item);
+        });
+      }
+      
+      function createTransactionItem(transaction) {
+        const item = document.createElement('div');
+        item.className = 'transaction-item';
+        item.dataset.id = transaction.id;
+        
+        const info = document.createElement('div');
+        info.className = 'transaction-info';
+        
+        const name = document.createElement('div');
+        name.className = 'transaction-name';
+        name.textContent = transaction.name;
+        info.appendChild(name);
+        
+        const details = document.createElement('div');
+        details.className = 'transaction-details';
+        
+        const amount = document.createElement('span');
+        amount.className = 'transaction-amount';
+        amount.textContent = '$' + transaction.amount.toFixed(2);
+        details.appendChild(amount);
+        
+        const separator = document.createElement('span');
+        separator.textContent = '•';
+        details.appendChild(separator);
+        
+        const category = document.createElement('span');
+        category.className = 'transaction-category';
+        category.textContent = transaction.category;
+        details.appendChild(category);
+        
+        info.appendChild(details);
+        item.appendChild(info);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'transaction-delete';
+        deleteBtn.textContent = '×';
+        deleteBtn.setAttribute('aria-label', 'Delete ' + transaction.name);
+        
+        deleteBtn.addEventListener('click', function() {
+          handleDelete(transaction.id, item);
+        });
+        
+        item.appendChild(deleteBtn);
+        
+        return item;
+      }
+      
+      function handleDelete(id, itemElement) {
+        itemElement.classList.add('deleting');
+        
+        setTimeout(function() {
+          const success = DataModel.deleteTransaction(id);
+          
+          if (success) {
+            DataModel.saveData();
+          } else {
+            itemElement.classList.remove('deleting');
+            console.error('Failed to delete transaction');
+            alert('Failed to delete transaction. Please try again.');
+          }
+        }, 300);
+      }
+      
+      function showEmpty() {
+        if (!containerElement) {
+          return;
+        }
+        
+        containerElement.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">📝</span>
+            <div>No transactions recorded</div>
+            <div class="empty-hint">Start by adding one above!</div>
+          </div>
+        `;
+      }
+      
+      return {
+        init: init,
+        render: render,
+        showEmpty: showEmpty
+      };
+    })();
+    
+    // Initialize the component
+    DataModel.loadData();
+    TransactionList.init(document.getElementById('transaction-list'));
+    TransactionList.render(DataModel.getAllTransactions());
+    
+    // Test functions
+    const categories = ['Food', 'Transport', 'Fun'];
+    const sampleNames = ['Pizza', 'Uber Ride', 'Movie Tickets', 'Groceries', 'Gas Station'];
+    
+    function testAddTransaction() {
+      const name = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+      const amount = (Math.random() * 100 + 5).toFixed(2);
+      const category = categories[Math.floor(Math.random() * categories.length)];
+      
+      DataModel.addTransaction({ name, amount, category });
+    }
+    
+    function testAddMultiple() {
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => testAddTransaction(), i * 200);
+      }
+    }
+    
+    function testClearAll() {
+      const transactions = DataModel.getAllTransactions();
+      transactions.forEach(t => {
+        setTimeout(() => DataModel.deleteTransaction(t.id), 100);
+      });
+    }
+    
+    function runAllTests() {
+      const results = [];
+      let passCount = 0;
+      let failCount = 0;
+      
+      // Test 1: Empty state display
+      const container = document.getElementById('transaction-list');
+      const hasEmptyState = container.querySelector('.empty-state') !== null;
+      results.push(`✓ Empty state displayed: ${hasEmptyState ? 'PASS' : 'FAIL'}`);
+      if (hasEmptyState) passCount++; else failCount++;
+      
+      // Test 2: Add transaction
+      DataModel.addTransaction({ name: 'Test Item', amount: '25.50', category: 'Food' });
+      const hasTransaction = container.querySelector('.transaction-item') !== null;
+      results.push(`✓ Transaction added and rendered: ${hasTransaction ? 'PASS' : 'FAIL'}`);
+      if (hasTransaction) passCount++; else failCount++;
+      
+      // Test 3: Display item, amount, category
+      const nameElement = container.querySelector('.transaction-name');
+      const amountElement = container.querySelector('.transaction-amount');
+      const categoryElement = container.querySelector('.transaction-category');
+      const hasAllFields = nameElement && amountElement && categoryElement;
+      results.push(`✓ All fields displayed (name, amount, category): ${hasAllFields ? 'PASS' : 'FAIL'}`);
+      if (hasAllFields) passCount++; else failCount++;
+      
+      // Test 4: Delete button exists
+      const deleteButton = container.querySelector('.transaction-delete');
+      results.push(`✓ Delete button present: ${deleteButton ? 'PASS' : 'FAIL'}`);
+      if (deleteButton) passCount++; else failCount++;
+      
+      // Test 5: Multiple transactions
+      DataModel.addTransaction({ name: 'Test Item 2', amount: '15.00', category: 'Transport' });
+      DataModel.addTransaction({ name: 'Test Item 3', amount: '30.75', category: 'Fun' });
+      const transactionCount = container.querySelectorAll('.transaction-item').length;
+      results.push(`✓ Multiple transactions displayed: ${transactionCount === 3 ? 'PASS' : 'FAIL'} (${transactionCount} items)`);
+      if (transactionCount === 3) passCount++; else failCount++;
+      
+      // Display results
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.className = 'test-results' + (failCount > 0 ? ' error' : '');
+      resultsDiv.innerHTML = `
+        <h3>Test Results</h3>
+        <p><strong>Passed:</strong> ${passCount} / ${passCount + failCount}</p>
+        <ul>
+          ${results.map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      `;
+    }
+  </script>
+</body>
+</html>
